@@ -1116,7 +1116,7 @@ def test_push_preferences_default_on():
 # --- Deploy: the key is generated once by the workflow and kept by deploy.sh --------------------------------------
 
 WORKFLOW = REPO / ".github/workflows/superadmin-deploy.yml"
-DEPLOY = BASE_DIR / "deploy/azure/deploy.sh"
+DEPLOY = BASE_DIR / "deploy/gcp/deploy.sh"
 
 
 def workflow_key_command() -> str:
@@ -1137,13 +1137,12 @@ def test_workflow_generates_masks_and_exports_the_key():
 
 def test_deploy_script_keeps_an_existing_key_and_references_the_secret():
     text = DEPLOY.read_text()
-    assert 'resolve PUSH_KEY portal-push-vapid-private-key "${NEW_PORTAL_PUSH_VAPID_PRIVATE_KEY:-}"' in text
-    assert '"portal-push-vapid-private-key=$PUSH_KEY"' in text
-    assert "PORTAL_PUSH_VAPID_PRIVATE_KEY=secretref:portal-push-vapid-private-key" in text
+    assert 'generated_once portal-push-vapid-private-key "${NEW_PORTAL_PUSH_VAPID_PRIVATE_KEY:-}"' in text
+    assert "  PORTAL_PUSH_VAPID_PRIVATE_KEY=portal-push-vapid-private-key\n" in text
     assert "^[A-Za-z0-9_-]{43}$" in text  # format guard before anything is written
-    # resolve() reads the app's secret first, then the job's, and only then falls back to the new value.
-    body = text.split("resolve() {", 1)[1].split("\n}\n", 1)[0]
-    assert body.index('read_secret _value app "$APP" "$2"') < body.index('_value="$3"')
+    # generated_once() keeps a stored secret and only otherwise writes the new value.
+    body = text.split("generated_once() {", 1)[1].split("\n}\n", 1)[0]
+    assert body.index('if secret_exists "$1"; then return 0; fi') < body.index('put_secret "$1" "$2"')
     env_example = (BASE_DIR / ".env.example").read_text()
     assert re.search(r"^PORTAL_PUSH_VAPID_PRIVATE_KEY=$", env_example, re.M)
 

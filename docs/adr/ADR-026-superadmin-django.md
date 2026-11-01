@@ -1,6 +1,6 @@
 # ADR 026 Super Admin as an isolated Django application
 
-Status: Accepted (Phase 1, 10 Oct 2026).
+Status: Accepted (Phase 1, 10 Oct 2026). Hosting amended 1 Nov 2026: the Azure credit ran out, so the app moved to Google Cloud Run (project `vitalos-workforce`, `europe-west2`) behind a Cloudflare Worker that forwards the public host with a shared secret (`EdgeProxyMiddleware`); deploys use Workload Identity Federation, secrets live in Secret Manager, and backups go to a private GCS bucket (`superadmin/docs/DECISIONS.md` 135, `superadmin/docs/DEPLOY.md`). The Azure details below are history.
 
 Context: Vitalos needs an internal system of record for its company architecture: service lines, practices, solutions, offers, team, projects, KPIs and decisions. The founder specified the stack: Python 3.12+, Django 5, HTMX, Tailwind CLI, PostgreSQL. The service is hosted at `admin.vitalos.co.uk`. This repository is TypeScript-first (ADR-002/003), and ADR-012 prefers reviewed Terraform for infrastructure.
 

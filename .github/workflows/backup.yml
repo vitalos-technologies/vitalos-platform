@@ -1,14 +1,16 @@
 name: Super Admin backup
 # Daily logical backup of the Super Admin's database (Supabase by default, or Neon) at 02:00 UTC. The dump is
-# encrypted with BACKUP_PASSPHRASE and written to a private Azure Blob Storage container (DECISIONS #101). It is
-# never uploaded as a workflow artifact: the repository is public, so artifacts are downloadable by anyone signed in.
-# The container has a 14-day time-based immutability policy (a blob can't be deleted or overwritten for 14 days,
-# even by this workflow) and a lifecycle rule that deletes blobs after 15 days.
+# encrypted with BACKUP_PASSPHRASE and written to a private Google Cloud Storage bucket in europe-west2 (project
+# vitalos-workforce; DECISIONS #101). It is never uploaded as a workflow artifact: the repository is public, so
+# artifacts are downloadable by anyone signed in. The bucket has a 14-day retention policy (an object can't be
+# deleted or overwritten for 14 days, even by this workflow), a lifecycle rule that deletes objects after 15 days,
+# uniform bucket-level access and public access prevention (DEPLOY.md §6).
 # The "backup" environment (no required reviewers, so the schedule is never held) holds:
 #   secrets DATABASE_URL (the read-only backup_reader role, DEPLOY.md §6.1) and BACKUP_PASSPHRASE;
-#   secrets AZURE_BACKUP_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID for OIDC (no stored Azure keys); the app
-#   registration github-vitalos-superadmin-backup only has Storage Blob Data Contributor on the container;
-#   variables BACKUP_STORAGE_ACCOUNT and BACKUP_CONTAINER.
+#   optionally the variable BACKUP_BUCKET (default below).
+# Google Cloud access is Workload Identity Federation (OIDC, no stored keys): the pool admits only this
+# repository's "backup" environment, which impersonates superadmin-backup, whose only roles are object create
+# and read on the bucket.
 # On Supabase's free plan this is the only backup, and the daily connection also keeps the project from pausing.
 # Scheduled runs only start once this file is on main. Restore steps: superadmin/docs/DEPLOY.md §6.
 on:
@@ -28,7 +30,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-      id-token: write # OIDC to Azure; no stored Azure keys
+      id-token: write # OIDC to Google Cloud; no stored keys
     steps:
       - name: pg_dump (client matching the server's PostgreSQL version)
         id: dump
@@ -70,31 +72,24 @@ jobs:
           ls -l dump
           echo "file=$file.gpg" >> "$GITHUB_OUTPUT"
           echo "blob=superadmin/$(date -u +%Y/%m)/superadmin-$stamp-pg$major.sql.gz.gpg" >> "$GITHUB_OUTPUT"
-      - name: Sign in to Azure (OIDC)
-        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+      - name: Sign in to Google Cloud (OIDC)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
-          client-id: ${{ secrets.AZURE_BACKUP_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          allow-no-subscriptions: true # the identity only has a role on one storage container
-      - name: Store the encrypted dump in private blob storage
+          workload_identity_provider: projects/447460690610/locations/global/workloadIdentityPools/github/providers/vitalos-platform
+          service_account: superadmin-backup@vitalos-workforce.iam.gserviceaccount.com
+      - name: Store the encrypted dump in the private bucket
         env:
-          ACCOUNT: ${{ vars.BACKUP_STORAGE_ACCOUNT }}
-          CONTAINER: ${{ vars.BACKUP_CONTAINER }}
+          BUCKET: ${{ vars.BACKUP_BUCKET || 'vitalos-workforce-superadmin-backups' }}
           FILE: ${{ steps.dump.outputs.file }}
           BLOB: ${{ steps.dump.outputs.blob }}
         run: |
           set -euo pipefail
-          if [ -z "$ACCOUNT" ] || [ -z "$CONTAINER" ]; then
-            echo "::error::BACKUP_STORAGE_ACCOUNT and BACKUP_CONTAINER must be set as 'backup' environment variables"
-            exit 1
-          fi
           case "$FILE" in *.gpg) ;; *) echo "::error::refusing to store an unencrypted file"; exit 1 ;; esac
-          az storage blob upload --auth-mode login --account-name "$ACCOUNT" --container-name "$CONTAINER"             --file "$FILE" --name "$BLOB" --overwrite false --only-show-errors --output none
+          gcloud storage cp "$FILE" "gs://$BUCKET/$BLOB" --no-clobber --quiet
           local_size="$(stat -c %s "$FILE")"
-          remote_size="$(az storage blob show --auth-mode login --account-name "$ACCOUNT" --container-name "$CONTAINER"             --name "$BLOB" --query properties.contentLength --output tsv --only-show-errors)"
+          remote_size="$(gcloud storage objects describe "gs://$BUCKET/$BLOB" --format='value(size)')"
           if [ "$local_size" != "$remote_size" ]; then
-            echo "::error::stored blob is $remote_size bytes, expected $local_size"
+            echo "::error::stored object is $remote_size bytes, expected $local_size"
             exit 1
           fi
           echo "Stored $BLOB ($remote_size bytes)"
