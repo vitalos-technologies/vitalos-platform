@@ -144,6 +144,10 @@ gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER" --project "$PROJE
 gcloud projects add-iam-policy-binding "$PROJECT" --role roles/run.developer --member "serviceAccount:$DEPLOYER"
 gcloud iam service-accounts add-iam-policy-binding "apps-runtime@$PROJECT.iam.gserviceaccount.com" --project "$PROJECT" \
   --role roles/iam.serviceAccountUser --member "serviceAccount:$DEPLOYER"
+# Read the image mirror: Cloud Run refuses to deploy an image the deploying identity can't read
+# (PERMISSION_DENIED artifactregistry.repositories.downloadArtifacts on repositories/ghcr otherwise).
+gcloud artifacts repositories add-iam-policy-binding ghcr --project "$PROJECT" --location europe-west2 \
+  --role roles/artifactregistry.reader --member "serviceAccount:$DEPLOYER"
 # Manage only the Super Admin's own secrets (the project-level match allows creating new ones; every
 # read, version and policy change is checked against the secret's own name).
 gcloud projects add-iam-policy-binding "$PROJECT" --role roles/secretmanager.admin --member "serviceAccount:$DEPLOYER" \
