@@ -18,6 +18,7 @@ from .base import (
     CAREERS_CV_STORAGE,
     CONTENT_MEDIA_BUCKET,
     CONTENT_MEDIA_STORAGE,
+    EDGE_PROXY_SECRET,
     EMAIL_TRANSPORT,
     OBJECT_STORAGE_BUCKET,
     PORTAL_FILES_BUCKET,
@@ -121,6 +122,9 @@ SILENCED_SYSTEM_CHECKS = ["security.W021"]
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=1)
+# The Cloudflare edge Worker's secret (EdgeProxyMiddleware) is optional, but never a short, guessable one.
+if 0 < len(EDGE_PROXY_SECRET) < 32:
+    raise ImproperlyConfigured("EDGE_PROXY_SECRET must be at least 32 characters.")
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

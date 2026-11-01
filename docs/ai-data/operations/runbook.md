@@ -25,7 +25,7 @@ Owner follow-up: reconnect the Vercel GitHub integration (Vercel › Project ›
 
 Website: no new variables. The AI & Data form uses the existing enquiry settings (`VITALOS_ENQUIRY_BACKEND`, Supabase, Turnstile, `EMAIL_PROVIDER`, `ENQUIRY_NOTIFICATION_TO`).
 
-Super Admin (GitHub environment `Production`; passed through by `superadmin/deploy/azure/deploy.sh` only when set):
+Super Admin (GitHub environment `Production`; passed through by `superadmin/deploy/gcp/deploy.sh` only when set):
 
 | Name                   | Kind     | Purpose                                                                                     | Default when unset                   |
 | ---------------------- | -------- | ------------------------------------------------------------------------------------------- | ------------------------------------ |

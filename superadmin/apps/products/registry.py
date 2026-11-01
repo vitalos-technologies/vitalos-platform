@@ -5,7 +5,7 @@ Adding a product:
 1. Add a ``Product`` below.
 2. Add its settings (status URL, status token, superadmin URL) to ``config/settings/base.py``,
    ``config/settings/prod.py`` and ``config/settings/test.py`` (https check), ``.env.example`` and
-   ``deploy/azure/deploy.sh``; document them in ``docs/DEPLOY.md`` section 10.
+   ``deploy/gcp/deploy.sh``; document them in ``docs/DEPLOY.md`` section 10.
 3. Add its open permission to ``models.ProductAccess.Meta.permissions`` and run
    ``python manage.py makemigrations products``.
 4. Add ``static/products/<key>-mark.svg`` and ``<key>-app-icon.svg``, and extend ``tests/test_products.py``.

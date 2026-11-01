@@ -60,6 +60,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "apps.core.middleware.HealthCheckMiddleware",
+    "apps.core.middleware.EdgeProxyMiddleware",
     "apps.core.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -145,8 +146,12 @@ AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_TEMPLATE = "accounts/lockout.html"
 AXES_CLIENT_IP_CALLABLE = "apps.core.http.client_ip"
 AXES_SENSITIVE_PARAMETERS = ["password"]
-# Number of trusted reverse proxies in front of the app (Azure Container Apps ingress = 1).
+# Number of trusted reverse proxies in front of the app (Cloud Run's front end = 1, as Azure Container Apps'
+# ingress was). Requests through the Cloudflare edge Worker take the client IP from CF-Connecting-IP instead.
 TRUSTED_PROXY_COUNT = env.int("TRUSTED_PROXY_COUNT", default=0)
+# Shared secret of the Cloudflare edge Worker in front of Cloud Run (apps.core.middleware.EdgeProxyMiddleware).
+# Empty: X-Forwarded-Host is never trusted.
+EDGE_PROXY_SECRET = env("EDGE_PROXY_SECRET", default="")
 
 # django-otp: TOTP is mandatory for SuperAdmin and for anyone who enrolled a device.
 # REQUIRE_MFA_FOR_SUPER_ADMIN is accepted as an alias for OTP_REQUIRED_FOR_SUPERADMIN.

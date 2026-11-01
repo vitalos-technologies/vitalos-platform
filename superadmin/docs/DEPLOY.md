@@ -1,18 +1,19 @@
-# Deploying the Vitalos Super Admin (zero monthly cost)
+# Deploying the Vitalos Super Admin
 
-Target: **https://admin.vitalos.co.uk**. Expected cost: **£0.00 per month.**
+Target: **https://admin.vitalos.co.uk** and **https://portal.vitalos.co.uk**. Expected cost: **about £1 to £2 per month** (Secret Manager versions and cached images; the app itself sits inside the Cloud Run free tier).
 
-| Piece            | Service                                                                    | Why it is free                                                   |
+> **Moved to Google Cloud on 1 Nov 2026** (the Azure credit ran out; DECISIONS.md 135). The app runs on Cloud Run in project `vitalos-workforce`, `europe-west2`, behind a Cloudflare Worker. Sections 2.1, 4, 5, 6.2 and 7 describe Google Cloud. The Azure sections that remain (§2.2 budget, the free-grant arithmetic, the Azure first-deploy checklist) are history, kept until the Azure resources are deleted.
+
+| Piece            | Service                                                                    | Cost                                                             |
 | ---------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| App              | Azure Container Apps, consumption plan, UK South, scale to zero            | Inside the monthly Container Apps free grant                     |
+| App              | Cloud Run service `vitalos-superadmin` and job `vitalos-superadmin-release`, `europe-west2`, scale to zero | Inside the Cloud Run free tier (request-based billing)           |
 | Database         | **Supabase** free plan (default) or Neon free plan, London (AWS eu-west-2) | Free plans                                                       |
-| Image            | GitHub Container Registry, public package `vitalos-platform/superadmin`     | Public packages: free storage and transfer, no pull token        |
-| DNS              | Cloudflare free plan, `admin` CNAME (DNS only)                             | Cloudflare free                                                  |
-| TLS              | Azure Container Apps managed certificate                                   | No charge                                                        |
-| Secrets          | Container Apps secrets                                                     | No charge (no Key Vault)                                         |
-| Logs             | Log Analytics, daily cap 0.1 GB, 31-day retention                          | First 5 GB/month and 31 days are free                            |
-| Backups          | Daily encrypted `pg_dump` in private Azure Blob Storage (15 days, locked 14); plus history on Neon | Pennies a month (a few MB, LRS Hot)                              |
-| Deploy           | GitHub Actions `Super Admin deploy`, Azure OIDC                            | Actions minutes included                                         |
+| Image            | Built to ghcr.io, pulled through the Artifact Registry remote repository `ghcr` | 0.5 GB free, then about US$0.10/GB a month                       |
+| Edge, DNS, TLS   | Cloudflare Worker `vitalos-superadmin-edge` on proxied `admin` and `portal` records | Cloudflare free (Workers free plan)                              |
+| Secrets          | Secret Manager, `vitalos-superadmin--<name>`, `europe-west2` only          | 6 versions free, then about US$0.06 per version a month          |
+| Logs             | Cloud Logging                                                              | First 50 GiB a month free                                        |
+| Backups          | Daily encrypted `pg_dump` in a private GCS bucket (15 days, retention 14); plus history on Neon | Pennies a month (a few MB, Standard)                             |
+| Deploy           | GitHub Actions `Super Admin deploy`, Workload Identity Federation (OIDC)    | Actions minutes included                                         |
 
 ## Status
 
@@ -66,7 +67,22 @@ The **plan** job prints everything it will create and the expected cost (£0.00)
 
 ## 1. What gets created
 
-All of it is in **`rg-vitalos-superadmin`**, region **`uksouth`**:
+**Google Cloud (current).** Project **`vitalos-workforce`**, region **`europe-west2`**:
+
+| Resource                      | Name                      | Created by     | Settings                                                                      |
+| ----------------------------- | ------------------------- | -------------- | ----------------------------------------------------------------------------- |
+| Workload identity pool        | `github`, provider `vitalos-platform` | §2.1 (once) | Admits only repository ID `1417273525`                              |
+| Deploy service account        | `superadmin-deployer`     | §2.1 (once)    | Trusted by the `production` environment subject only                          |
+| Runtime service account       | `apps-runtime`            | migration (once) | Reads its own secrets; nothing else                                         |
+| Artifact Registry remote repo | `ghcr`                    | migration (once) | Pull-through mirror of ghcr.io                                              |
+| Cloud Run job                 | `vitalos-superadmin-release` | deploy      | `bin/release.sh`; 1 vCPU / 512 MiB; task timeout 900 s; no retries            |
+| Cloud Run service             | `vitalos-superadmin`      | deploy         | Port 8000, **min 0 / max 1 instances**, 1 vCPU / 512 MiB, concurrency 50, startup CPU boost, public |
+| Secret Manager secrets        | `vitalos-superadmin--<name>` | deploy      | `europe-west2` only; `apps-runtime` is the only reader                        |
+| Cloudflare Worker             | `vitalos-superadmin-edge` | `migrate.sh cutover vitalos` | Never by this repository's workflows                           |
+
+Run `superadmin/deploy/gcp/deploy.sh --dry-run` to print the same plan locally. It needs no credentials.
+
+**Azure (history, until the resources are deleted).** All of it is in **`rg-vitalos-superadmin`**, region **`uksouth`**:
 
 | Resource                      | Name                      | Created by     | Settings                                                                      |
 | ----------------------------- | ------------------------- | -------------- | ----------------------------------------------------------------------------- |
@@ -79,27 +95,64 @@ All of it is in **`rg-vitalos-superadmin`**, region **`uksouth`**:
 | Custom domain + managed cert  | `admin.vitalos.co.uk`     | deploy         | CNAME validation                                                              |
 | Cloudflare records            | `admin` CNAME, `asuid.admin` TXT | deploy  | DNS only (grey cloud), TTL 300                                                |
 
-Run `superadmin/deploy/azure/deploy.sh --dry-run` to print the same plan locally. It needs no credentials.
-
 ### Secrets and environment variables
 
-All secrets are **Container Apps secrets**, referenced by environment variables with `secretref:`. Their values are never printed, logged or committed.
+All secrets are **Secret Manager secrets** named `vitalos-superadmin--<name>` (the old Container Apps secret names), attached with `--update-secrets` as `<ENV VAR>=vitalos-superadmin--<name>:latest`. Their values are never printed, logged or committed. A new version is added only when a value changes.
 
-| Container Apps secret      | Env var                    | Source                                                                     |
+| Secret (`vitalos-superadmin--…`) | Env var             | Source                                                                     |
 | -------------------------- | -------------------------- | -------------------------------------------------------------------------- |
 | `django-secret-key`        | `DJANGO_SECRET_KEY`        | `openssl rand` in the workflow on first deploy; kept afterwards             |
 | `bootstrap-admin-password` | `BOOTSTRAP_ADMIN_PASSWORD` | `openssl rand` on first deploy; kept. Env var only on the release job      |
 | `portal-push-vapid-private-key` | `PORTAL_PUSH_VAPID_PRIVATE_KEY` | `openssl ecparam` (P-256) in the workflow on first deploy; kept. Client portal push (ADR-056 Phase 2) |
+| `edge-proxy-secret`        | `EDGE_PROXY_SECRET`        | `openssl rand` on first deploy (at least 32 characters); kept. Service only; the Cloudflare Worker sends the same value (§4) |
 | `database-url`             | `DATABASE_URL`             | GitHub `production` secret `SUPERADMIN_DATABASE_URL` (Supabase session pooler, or Neon pooled); re-applied every deploy |
 | `sentry-dsn` (optional)    | `SENTRY_DSN`               | GitHub `production` secret                                                 |
 
-Plain environment variables: `DJANGO_SETTINGS_MODULE=config.settings.prod`, `ALLOWED_HOSTS=admin.vitalos.co.uk`, `CSRF_TRUSTED_ORIGINS=https://admin.vitalos.co.uk`, `SECURE_SSL_REDIRECT=True`, `TRUSTED_PROXY_COUNT=1`, `APP_ENVIRONMENT=production`, `LOG_FORMAT=json` and `WEB_CONCURRENCY=2`. The release job also gets `BOOTSTRAP_ADMIN_EMAIL` from the `production` environment secret of that name. The prod settings use `CONN_MAX_AGE=0`, connection health checks, and no server-side cursors. That suits a pooled free-tier database: Supabase's session pooler, or Neon's PgBouncer with its autosuspend.
+Plain environment variables: `DJANGO_SETTINGS_MODULE=config.settings.prod`, `ALLOWED_HOSTS=admin.vitalos.co.uk,portal.vitalos.co.uk`, `CSRF_TRUSTED_ORIGINS=https://admin.vitalos.co.uk,https://portal.vitalos.co.uk`, `PORTAL_HOST=portal.vitalos.co.uk`, `SECURE_SSL_REDIRECT=True`, `TRUSTED_PROXY_COUNT=1`, `APP_ENVIRONMENT=production`, `LOG_FORMAT=json` and `WEB_CONCURRENCY=2`. The release job also gets `BOOTSTRAP_ADMIN_EMAIL` from the `production` environment secret of that name. The prod settings use `CONN_MAX_AGE=0`, connection health checks, and no server-side cursors. That suits a pooled free-tier database: Supabase's session pooler, or Neon's PgBouncer with its autosuspend.
 
-## 2. One-time setup: Azure (subscription Owner) and the database
+## 2. One-time setup: Google Cloud (project Owner) and the database
 
-### 2.1 Resource group, Log Analytics, Container Apps environment, OIDC identity
+### 2.1 Workload Identity Federation, the deploy identity and its roles
 
-Run this in Azure Cloud Shell (bash):
+The runtime service account `apps-runtime`, the Artifact Registry remote repository `ghcr` and the first copies of the service, the job and their secrets were created by the migration from Azure (`migrate.sh stage vitalos`, 1 Nov 2026). What the workflow still needs is a way in. Run this once as project Owner (Cloud Shell, or `gcloud` signed in as the owner):
+
+```sh
+PROJECT=vitalos-workforce
+PROJECT_NUMBER=447460690610
+# This repository uses GitHub's immutable OIDC subjects (owner and repository IDs after the names), and the
+# token carries the environment name as the workflow spells it (lowercase). Check the prefix with:
+#   gh api repos/vitalos-technologies/vitalos-platform/actions/oidc/customization/sub --jq .sub_claim_prefix
+SUBJECT='repo:vitalos-technologies@342099833/vitalos-platform@1417273525'
+POOL="projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github"
+
+gcloud services enable iam.googleapis.com iamcredentials.googleapis.com sts.googleapis.com --project "$PROJECT"
+
+# Workload identity pool and GitHub provider: only this repository (by ID, which survives renames).
+gcloud iam workload-identity-pools create github --project "$PROJECT" --location global \
+  --display-name "GitHub Actions"
+gcloud iam workload-identity-pools providers create-oidc vitalos-platform --project "$PROJECT" --location global \
+  --workload-identity-pool github --issuer-uri https://token.actions.githubusercontent.com \
+  --attribute-mapping 'google.subject=assertion.sub,attribute.repository_id=assertion.repository_id' \
+  --attribute-condition "assertion.repository_id == '1417273525'"
+
+# Deploy identity: only the "production" environment can use it.
+gcloud iam service-accounts create superadmin-deployer --project "$PROJECT" --display-name "GitHub: Super Admin deploy"
+DEPLOYER="superadmin-deployer@$PROJECT.iam.gserviceaccount.com"
+gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER" --project "$PROJECT" \
+  --role roles/iam.workloadIdentityUser --member "principal://iam.googleapis.com/$POOL/subject/$SUBJECT:environment:production"
+# Deploy Cloud Run services and jobs, and run them as apps-runtime.
+gcloud projects add-iam-policy-binding "$PROJECT" --role roles/run.developer --member "serviceAccount:$DEPLOYER"
+gcloud iam service-accounts add-iam-policy-binding "apps-runtime@$PROJECT.iam.gserviceaccount.com" --project "$PROJECT" \
+  --role roles/iam.serviceAccountUser --member "serviceAccount:$DEPLOYER"
+# Manage only the Super Admin's own secrets (the project-level match allows creating new ones; every
+# read, version and policy change is checked against the secret's own name).
+gcloud projects add-iam-policy-binding "$PROJECT" --role roles/secretmanager.admin --member "serviceAccount:$DEPLOYER" \
+  --condition="title=vitalos-superadmin secrets only,expression=resource.type == \"cloudresourcemanager.googleapis.com/Project\" || resource.name.startsWith(\"projects/$PROJECT_NUMBER/secrets/vitalos-superadmin--\")"
+```
+
+None of these names is secret; the workflow carries the provider and service account names in its `env:` block. `roles/run.developer` is project-wide, so the deploy identity could also update the Pitline services in the same project; a custom role scoped to the two Super Admin resources is the tighter option if that matters.
+
+**Azure (history).** The Azure setup was run in Azure Cloud Shell (bash):
 
 ```sh
 SUB=<vitalos-subscription-id>
@@ -183,7 +236,7 @@ Either free plan works with the same app, settings and retries. Supabase is the 
    `postgresql://postgres.<project-ref>:<password>@aws-0-eu-west-2.pooler.supabase.com:5432/postgres?sslmode=require`
 
    Copy the host exactly as the dashboard shows it; the `aws-0` prefix can differ.
-   - **Don't use the Direct connection** (`db.<project-ref>.supabase.co`). It is IPv6-only, and neither Container Apps nor GitHub-hosted runners have IPv6 egress. `deploy.sh` refuses that host with a pointer back here.
+   - **Don't use the Direct connection** (`db.<project-ref>.supabase.co`). It is IPv6-only, and neither Cloud Run (by default) nor GitHub-hosted runners have IPv6 egress. `deploy.sh` refuses that host with a pointer back here.
    - **Don't use the Transaction pooler** (port 6543). The session pooler is the configuration this was set up and documented for.
 3. **Lock down the Data API before the first deploy.** Supabase's default privileges give its API roles (`anon`, `authenticated`, `service_role`) full read and write on every new table in `public`, with row-level security off. Those tables are the app's tables, including password hashes and TOTP secrets, and the Data API exposes them with a key that is public by design. In **SQL Editor**, which runs as `postgres`, run:
 
@@ -225,32 +278,32 @@ curl -sS https://admin.vitalos.co.uk/healthz/                  # {"status": "ok"
 curl -sSI https://admin.vitalos.co.uk/login/ | grep -iE 'HTTP/|strict-transport|content-security'
 ```
 
-The bootstrap password lives only in the Container Apps secret `bootstrap-admin-password`. **Retrieve it once** (as Contributor or Owner on the resource group):
+The bootstrap password lives only in the secret `vitalos-superadmin--bootstrap-admin-password`. **Retrieve it once** (as project Owner):
 
 ```sh
-az containerapp secret show -n superadmin -g rg-vitalos-superadmin --secret-name bootstrap-admin-password --query value -o tsv
+gcloud secrets versions access latest --secret vitalos-superadmin--bootstrap-admin-password --project vitalos-workforce
 ```
 
 1. Open https://admin.vitalos.co.uk and sign in as the bootstrap admin (`BOOTSTRAP_ADMIN_EMAIL`).
 2. Scan the QR code. TOTP is mandatory for SuperAdmin.
-3. **Change the password immediately**: **Account & security → Change password**. The Container Apps secret is not updated (by design), and it is never used again for an existing account, because `create_superadmin` leaves existing accounts unchanged.
+3. **Change the password immediately**: **Account & security → Change password**. The secret is not updated (by design), and it is never used again for an existing account, because `create_superadmin` leaves existing accounts unchanged.
 
 The live smoke test (`e2e/smoke.py`, ticked on the first run) signs in, enrols a temporary authenticator, and exercises every dashboard and create/edit flow. It archives its "Smoke test …" records and removes the authenticator. Run it **before** your own first sign-in. Once you have enrolled, it reports *skipped*. Its screenshots are uploaded as a 7-day artifact; copy them to `superadmin/docs/screenshots/live/`.
 
-## 4. Optional hardening: Cloudflare proxy (orange cloud)
+## 4. The Cloudflare edge Worker
 
-Turn the proxy on only **after** the first deploy has bound the domain and issued the certificate:
+Cloud Run serves only its own `*.run.app` address unless a load balancer sits in front, so the public hosts reach it through a Cloudflare Worker instead (free): `vitalos-superadmin-edge`, routed on `admin.vitalos.co.uk/*` and `portal.vitalos.co.uk/*` with both records **Proxied**. It is created and switched on by `migrate.sh cutover vitalos` (outside this repository), which refuses to run until the run.app address answers `/login/` as `admin.vitalos.co.uk`; `migrate.sh rollback vitalos` turns the proxy off again. This repository's workflows never change DNS or Cloudflare.
 
-1. In Cloudflare, go to **SSL/TLS → Overview** and set the mode to **Full (strict)**. Never use Flexible.
-2. Under **DNS**, switch the `admin` record to **Proxied**, and leave the `asuid.admin` TXT record as it is.
-3. Set `TRUSTED_PROXY_COUNT=2` so lockouts see the real client IP, because Cloudflare adds a hop:
+The Worker rewrites each request to the run.app address and adds two headers:
 
-   ```sh
-   az containerapp update -n superadmin -g rg-vitalos-superadmin --set-env-vars TRUSTED_PROXY_COUNT=2
-   ```
+- `X-Forwarded-Host`: the public host the visitor asked for.
+- `X-Vitalos-Edge-Secret`: the value of the secret `vitalos-superadmin--edge-proxy-secret`.
 
-   Also change it in `deploy.sh`, or each redeploy resets it to 1.
-4. **Certificate renewal:** Azure renews managed certificates only while the CNAME is visible. Around renewal, which is roughly every 6 months, set the record back to **DNS only** for a day. Alternatively, upload a free Cloudflare Origin CA certificate to the environment and bind it instead.
+`EdgeProxyMiddleware` (`apps/core/middleware.py`) runs before host validation, CSRF and the portal's host routing. Only when `EDGE_PROXY_SECRET` is set and the header matches (constant-time comparison) does it replace `HTTP_HOST` with the forwarded host, and only with a host in `ALLOWED_HOSTS`. Otherwise the request is untouched, so a direct request to the run.app address gets a 400 from host validation. The secret header is removed from the request either way.
+
+**Client IP.** Cloud Run's front end appends the connecting address to `X-Forwarded-For`; behind the Worker that address is Cloudflare's, shared by every visitor. For a request with a valid edge secret, `client_ip()` uses `CF-Connecting-IP` instead, which Cloudflare sets on a Worker's subrequest to a non-Cloudflare origin and the Worker can't change. `TRUSTED_PROXY_COUNT` therefore stays **1**: never raise it to 2 for Cloudflare, because a direct run.app request could then choose its own IP.
+
+**Rotate the edge secret:** add a new version to `vitalos-superadmin--edge-proxy-secret`, redeploy the Super Admin, then run `migrate.sh cutover vitalos` again so the Worker gets the same value. Requests in between get a 400.
 
 ## 5. Automatic deploy, redeploy and roll back
 
@@ -261,32 +314,34 @@ Merging a Super Admin change to `main` deploys it, under the standing approval f
 1. A push to `main` that touches `superadmin/` (not `superadmin/docs/` or markdown) or `.github/workflows/superadmin*.yml` starts the **Super Admin** CI workflow.
 2. When that run **completes**, **Super Admin deploy** starts through `workflow_run` (branch `main`, push events only). The plan job proceeds only if the CI conclusion is `success` and every one of its jobs is `success` (a skipped or cancelled job stops it), and the range since the commit running in production changed Super Admin runtime files or the deploy workflow (`git diff --name-only <deployed> <sha>`, see the range below). Docs-only and non-Super Admin pushes never start CI, so they never deploy.
 3. It builds, migrates and deploys exactly `workflow_run.head_sha`, the commit CI tested, never the moving branch tip. Super Admin CI no longer cancels in-progress runs on `main`, so each commit gets its own finished run.
-4. **Migration guard and its range.** The range is every commit between the **deployed commit** and the commit being deployed. The deployed commit is the tag of the image the production Container App runs now (the tag is the commit SHA); a read-only `current` job in the `production` environment reads it through the Azure OIDC login (`id-token: write`, nothing else). The plan job fetches history, requires `git merge-base --is-ancestor <deployed> <sha>`, then scans migration files added or modified in that range (`git diff --diff-filter=AM <deployed> <sha>`, `superadmin/apps/*/migrations/*.py`) for `RemoveField`, `DeleteModel`, `RenameField`, `RenameModel`, `AlterField` (flagged for review) and `RunSQL`. The changed-files gate uses the same range. A hit fails the plan job: "deploy manually with confirm=DEPLOY after review". If the deployed SHA cannot be read (no app yet, tag not a SHA, Azure unreachable) or is not an ancestor of the new commit (a rollback or a deploy from a branch), the plan fails closed with the same message and never falls back to the previous commit. So two quick merges cannot hide a risky migration, and Super Admin PRs no longer need merging one at a time.
-5. **Pre-migration backup.** The `backup` job dispatches **Super Admin backup** (`backup.yml`, which stores an encrypted dump in private blob storage, §6.2) and waits for it to succeed before the deploy job runs. A failed backup stops the deploy before any migration. The deploy workflow itself never creates or uploads a dump, because this repository is public and personal data stays out of its artifacts and logs.
-6. **Post-deploy check.** After `deploy.sh`, the job polls `https://admin.vitalos.co.uk/healthz/` for up to 5 minutes and confirms the app runs the new image tag. On failure the run fails and prints the rollback command. **Nothing rolls back automatically.**
+4. **Migration guard and its range.** The range is every commit between the **deployed commit** and the commit being deployed. The deployed commit is the tag of the image the Cloud Run service runs now (the tag is the commit SHA); a read-only `current` job in the `production` environment reads it through the Workload Identity Federation login (`id-token: write`, nothing else). The plan job fetches history, requires `git merge-base --is-ancestor <deployed> <sha>`, then scans migration files added or modified in that range (`git diff --diff-filter=AM <deployed> <sha>`, `superadmin/apps/*/migrations/*.py`) for `RemoveField`, `DeleteModel`, `RenameField`, `RenameModel`, `AlterField` (flagged for review) and `RunSQL`. The changed-files gate uses the same range. A hit fails the plan job: "deploy manually with confirm=DEPLOY after review". If the deployed SHA cannot be read (no service yet, tag not a SHA, Google Cloud unreachable) or is not an ancestor of the new commit (a rollback or a deploy from a branch), the plan fails closed with the same message and never falls back to the previous commit. So two quick merges cannot hide a risky migration, and Super Admin PRs no longer need merging one at a time.
+5. **Pre-migration backup.** The `backup` job dispatches **Super Admin backup** (`backup.yml`, which stores an encrypted dump in a private GCS bucket, §6.2) and waits for it to succeed before the deploy job runs. A failed backup stops the deploy before any migration. The deploy workflow itself never creates or uploads a dump, because this repository is public and personal data stays out of its artifacts and logs.
+6. **Post-deploy check.** `deploy.sh` waits for the run.app `/healthz/` and requires `/login/` to answer 200 as `admin.vitalos.co.uk` through the edge path (forwarded host plus edge secret); the portal's `/sign-in/` is checked the same way and reported as a warning. The job then polls the run.app and `https://admin.vitalos.co.uk/healthz/` for up to 5 minutes each and confirms the service runs the new image tag. On failure the run fails and prints the rollback command. **Nothing rolls back automatically.**
 7. Deploys queue in the `superadmin-deploy` group and never cancel one another mid-migration.
 
 **Manual override:** run **Super Admin deploy** (`workflow_dispatch`, `confirm=DEPLOY`) from any ref. It skips the changed-files and migration guards, not the backup. Use it for a reviewed destructive migration, a redeploy or a rollback.
 
 ### 5.2 Redeploy and roll back
 
-**Redeploy:** run **Super Admin deploy** again from the commit you want. It builds `ghcr.io/<owner>/vitalos-platform/superadmin:<sha>` and runs the release job (migrations first). Then it updates the app. Secrets and the domain binding are kept, and the 3 newest images are retained.
+**Redeploy:** run **Super Admin deploy** again from the commit you want. It builds `ghcr.io/<owner>/vitalos-platform/superadmin:<sha>`, runs the release job (migrations first) from `europe-west2-docker.pkg.dev/vitalos-workforce/ghcr/<owner>/vitalos-platform/superadmin:<sha>`, then updates the service. Secrets are kept, and the 3 newest images are retained on ghcr.io (older ones stay in the mirror's cache once pulled).
 
-**Roll back the code** to one of the 3 retained images:
+**Roll back the code:** send traffic back to the previous revision (the failed run prints its name), or deploy an older image:
 
 ```sh
-az containerapp update -n superadmin -g rg-vitalos-superadmin --image ghcr.io/isaacpyo/vitalos-platform/superadmin:<previous sha>
+gcloud run revisions list --service vitalos-superadmin --project vitalos-workforce --region europe-west2
+gcloud run services update-traffic vitalos-superadmin --project vitalos-workforce --region europe-west2 --to-revisions <revision>=100
 ```
+
+A revision pinned this way keeps all traffic until the next deploy, which sends traffic to the new revision again.
 
 Migrations only move forward. They are additive in this project. If a migration must be undone, restore the database (§6). Never drop tables by hand.
 
-**Take it offline quickly, without deleting anything:**
+**Take it offline quickly, without deleting anything:** `migrate.sh rollback vitalos` sends the public hosts back to Azure while it still exists; to stop the Cloud Run service answering at all, make it private:
 
 ```sh
-az containerapp ingress disable -n superadmin -g rg-vitalos-superadmin
+gcloud run services remove-iam-policy-binding vitalos-superadmin --project vitalos-workforce --region europe-west2 \
+  --member allUsers --role roles/run.invoker
 ```
-
-To remove the DNS record, delete the `admin` CNAME in Cloudflare.
 
 ## 6. Backups and restore
 
@@ -297,7 +352,7 @@ What you can restore from depends on the database:
 
 **Daily dump.** `.github/workflows/backup.yml` runs at 02:00 UTC (once on `main`), or on demand with **Actions → Super Admin backup → Run workflow**.
 
-- Each run stores `superadmin/<yyyy>/<mm>/superadmin-<UTC timestamp>-pg<major>.sql.gz.gpg` in the private container (§6.2): a gzipped plain SQL dump of the app's `public` schema, always encrypted with `BACKUP_PASSPHRASE`. A blob can't be deleted or overwritten for **14 days** and is deleted after **15 days**. Nothing is uploaded as a workflow artifact: this repository is public.
+- Each run stores `superadmin/<yyyy>/<mm>/superadmin-<UTC timestamp>-pg<major>.sql.gz.gpg` in the private bucket (§6.2): a gzipped plain SQL dump of the app's `public` schema, always encrypted with `BACKUP_PASSPHRASE`. An object can't be deleted or overwritten for **14 days** and is deleted after **15 days**. Nothing is uploaded as a workflow artifact: this repository is public.
 - The workflow reads the server's version first and dumps with the matching client (for example `postgres:15` for Supabase on 15), so the dump restores on that version.
 - Supabase's own schemas (`auth`, `storage` and others) are not included. The app doesn't use them, and `backup_reader` can't read them.
 
@@ -309,9 +364,9 @@ Restore into an **empty** database:
 Use the PostgreSQL image whose major version matches `pg<major>` in the file name:
 
 ```sh
-az storage blob list --auth-mode login --account-name stvitalosbackups --container-name superadmin-db --prefix superadmin/ -o table
-az storage blob download --auth-mode login --account-name stvitalosbackups --container-name superadmin-db \n  --name superadmin/<yyyy>/<mm>/superadmin-<timestamp>-pg<major>.sql.gz.gpg --file superadmin-<timestamp>-pg<major>.sql.gz.gpg
-# (or download it in the portal: Storage account -> Containers -> superadmin-db)
+gcloud storage ls -l gs://vitalos-workforce-superadmin-backups/superadmin/
+gcloud storage cp gs://vitalos-workforce-superadmin-backups/superadmin/<yyyy>/<mm>/superadmin-<timestamp>-pg<major>.sql.gz.gpg .
+# (or download it in the console: Cloud Storage -> Buckets -> vitalos-workforce-superadmin-backups)
 gpg --decrypt superadmin-<timestamp>-pg<major>.sql.gz.gpg > superadmin-<timestamp>-pg<major>.sql.gz
 gunzip -c superadmin-<timestamp>-pg<major>.sql.gz | sed '/^CREATE SCHEMA public;$/d' \
   | docker run --rm -i postgres:<major> psql "<connection string>" -v ON_ERROR_STOP=1
@@ -319,13 +374,7 @@ gunzip -c superadmin-<timestamp>-pg<major>.sql.gz | sed '/^CREATE SCHEMA public;
 
 The `sed` removes the dump's `CREATE SCHEMA public;` line. The schema already exists in every new database, and with `ON_ERROR_STOP` that line would abort the restore.
 
-Then point the app at the restored database. Update the GitHub `production` secret `SUPERADMIN_DATABASE_URL` to the new pooled string and redeploy. Or apply it immediately with:
-
-```sh
-az containerapp secret set -n superadmin -g rg-vitalos-superadmin --secrets database-url=<pooled string>
-```
-
-followed by a revision restart. Recreate `backup_reader` in the new database (§6.1), and update the `backup` secret.
+Then point the app at the restored database. Update the GitHub `production` secret `SUPERADMIN_DATABASE_URL` to the new pooled string and redeploy: the deploy adds it as a new version of `vitalos-superadmin--database-url` and the new revision reads it. Recreate `backup_reader` in the new database (§6.1), and update the `backup` secret.
 
 ### 6.1 Read-only backup role
 
@@ -364,9 +413,43 @@ If the app's tables are owned by another role, use that role's name in both `ALT
 
 Rotate the password with `ALTER ROLE backup_reader PASSWORD '<new>';`, then update the secret. Remove the role with `DROP OWNED BY backup_reader; DROP ROLE backup_reader;`. `DROP OWNED` here revokes only its grants, because it owns nothing.
 
-### 6.2 Backup storage (Azure Blob, private)
+### 6.2 Backup storage (Google Cloud Storage, private)
 
-The dumps live in their own storage account, separate from the app's resources, and are reached only through Microsoft Entra ID: account keys and anonymous access are off. The workflow signs in with OIDC as its own app registration, which can write to this one container and nothing else (the deploy identity has no access to it, and the backup identity can't deploy).
+The dumps live in their own bucket, reached only through IAM: uniform bucket-level access and public access prevention are on, and there are no HMAC keys. The workflow signs in with Workload Identity Federation as its own service account, which can create and read objects in this one bucket and nothing else (the deploy identity has no access to it, and the backup identity can't deploy).
+
+| Item | Value |
+| --- | --- |
+| Bucket | `gs://vitalos-workforce-superadmin-backups`, project `vitalos-workforce`, `europe-west2`, Standard (override with the `backup` variable `BACKUP_BUCKET`) |
+| Hardening | Uniform bucket-level access, public access prevention enforced |
+| Retention | Bucket retention policy, **14 days** (not locked): no object can be deleted or overwritten for 14 days, so a leaked credential or a bad workflow can't wipe the backups |
+| Lifecycle | Delete objects **15 days** after creation |
+| Identity | Service account `superadmin-backup`, usable only by the subject `repo:vitalos-technologies@342099833/vitalos-platform@1417273525:environment:backup`; **Storage Object Creator** and **Storage Object Viewer** on the bucket only |
+| Restore access | The project Owner |
+| `backup` environment | Secrets `DATABASE_URL` and `BACKUP_PASSPHRASE` only; the Azure secrets and variables can be removed |
+
+One-time setup, as project Owner (after the pool in §2.1):
+
+```sh
+PROJECT=vitalos-workforce
+PROJECT_NUMBER=447460690610
+BUCKET=gs://vitalos-workforce-superadmin-backups
+SUBJECT='repo:vitalos-technologies@342099833/vitalos-platform@1417273525:environment:backup'
+gcloud storage buckets create "$BUCKET" --project "$PROJECT" --location europe-west2 --default-storage-class STANDARD \
+  --uniform-bucket-level-access --public-access-prevention --retention-period 14d
+printf '{"rule": [{"action": {"type": "Delete"}, "condition": {"age": 15}}]}' > lifecycle.json
+gcloud storage buckets update "$BUCKET" --lifecycle-file lifecycle.json && rm lifecycle.json
+gcloud iam service-accounts create superadmin-backup --project "$PROJECT" --display-name "GitHub: Super Admin backup"
+BACKUP_SA="superadmin-backup@$PROJECT.iam.gserviceaccount.com"
+gcloud iam service-accounts add-iam-policy-binding "$BACKUP_SA" --project "$PROJECT" --role roles/iam.workloadIdentityUser \
+  --member "principal://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github/subject/$SUBJECT"
+for role in roles/storage.objectCreator roles/storage.objectViewer; do
+  gcloud storage buckets add-iam-policy-binding "$BUCKET" --member "serviceAccount:$BACKUP_SA" --role "$role"
+done
+```
+
+Cost: a few MB of dumps cost pennies a month. To change the retention, update the bucket's retention policy and the lifecycle rule together; the lifecycle delete must come after the retention ends. Dumps taken on Azure stay in `stvitalosbackups` until that account is deleted; copy any you want to keep first.
+
+**Azure (history).** Until 1 Nov 2026 the dumps lived in their own Azure storage account, reached only through Microsoft Entra ID, written by the app registration `github-vitalos-superadmin-backup`:
 
 | Item | Value |
 | --- | --- |
@@ -398,15 +481,16 @@ Not tested, because there was no Supabase account: the pooler's `<role>.<project
 ## 7. Operations
 
 ```sh
-az containerapp logs show -n superadmin -g rg-vitalos-superadmin --follow     # JSON lines with request_id
-az containerapp job execution list -n superadmin-release -g rg-vitalos-superadmin -o table
+gcloud beta run services logs tail vitalos-superadmin --project vitalos-workforce --region europe-west2   # JSON lines with request_id
+gcloud run jobs executions list --job vitalos-superadmin-release --project vitalos-workforce --region europe-west2
 ```
 
-- **Errors:** every response carries `X-Request-ID`; search for it in Log Analytics. Set `SENTRY_DSN` in the `production` environment and redeploy to report errors; no personal data is sent.
+- **Errors:** every response carries `X-Request-ID`; search for it in Cloud Logging. Set `SENTRY_DSN` in the `production` environment and redeploy to report errors; no personal data is sent.
 - **Rotating secrets:**
   - Database: reset the password (Supabase: **Project Settings → Database**; Neon: the role's settings), update `SUPERADMIN_DATABASE_URL` (and the `backup` secret), and redeploy.
-  - Django key: `az containerapp secret set ... --secrets django-secret-key=<new>` on both the app and the job. This signs everyone out.
-  - Client portal push key: remove the env var and the secret `portal-push-vapid-private-key` from the app and the job, then deploy; the workflow generates a new one. Every customer has to turn notifications on again (commands in `superadmin/apps/portal/README.md`, "Rotate the push key").
+  - Django key: add a new version to `vitalos-superadmin--django-secret-key` (`gcloud secrets versions add ... --data-file=-`), then redeploy. This signs everyone out.
+  - Client portal push key: delete the secret `vitalos-superadmin--portal-push-vapid-private-key`, then deploy; the workflow generates a new one.
+  - Edge proxy secret: §4. Every customer has to turn notifications on again (commands in `superadmin/apps/portal/README.md`, "Rotate the push key").
 - **Staying at £0:**
   - Do not add an external uptime monitor. `/healthz/` touches the database, so a monitor would keep the app (and Neon) awake and use up the free grant. On Supabase, the nightly backup already keeps the project active.
   - The image is public, so cold-start pulls have no transfer quota and need no token. Keep it public: if it is made private again, deploys stop at the pull check, and running replicas fail their next cold start.
@@ -430,7 +514,7 @@ Insights and Careers live in this app (ADR-039 to ADR-042). Both sections stay c
 
 ### Variables and secrets
 
-`deploy/azure/deploy.sh` passes each one through when the deploy workflow provides a non-empty value (an empty value never overwrites what the app already holds). The deploy workflow must map them from the GitHub `production` environment (secrets for the secret rows).
+`deploy/gcp/deploy.sh` passes each one through when the deploy workflow provides a non-empty value (an empty value never overwrites what the app already holds). The deploy workflow must map them from the GitHub `production` environment (secrets for the secret rows).
 
 | Name | Kind | Container Apps secret | What |
 | ---- | ---- | --------------------- | ---- |
@@ -532,6 +616,6 @@ The Product Pipeline shows each Vitalos product's live status and opens the prod
 | `AUTOFIX_STATUS_URL` | variable | | Default `https://pitline.co.uk/superadmin/api/platform/v1/status`; must be https in production |
 | `AUTOFIX_SUPERADMIN_URL` | variable | | Default `https://pitline.co.uk/superadmin/`; must be https in production |
 
-`deploy/azure/deploy.sh` passes each one through when the deploy workflow provides a non-empty value. The deploy workflow (`.github/workflows/superadmin-deploy.yml`) must also map them from the GitHub `production` environment before a deploy can set them; until then set the secret once with `az containerapp secret set` and `az containerapp update --set-env-vars ASKBRIDGE_STATUS_TOKEN=secretref:askbridge-status-token` (for Pitline: secret `autofix-status-token`, `AUTOFIX_STATUS_TOKEN=secretref:autofix-status-token`; later deploys merge env vars, so it stays). Never print the value.
+`deploy/gcp/deploy.sh` passes each one through when the deploy workflow provides a non-empty value. The deploy workflow (`.github/workflows/superadmin-deploy.yml`) must also map them from the GitHub `production` environment before a deploy can set them; until then set the secret once with `az containerapp secret set` and `az containerapp update --set-env-vars ASKBRIDGE_STATUS_TOKEN=secretref:askbridge-status-token` (for Pitline: secret `autofix-status-token`, `AUTOFIX_STATUS_TOKEN=secretref:autofix-status-token`; later deploys merge env vars, so it stays). Never print the value.
 
 Access: SuperAdmins see everything. For anyone else, `python manage.py product_access --email <email> --grant view_product_pipeline` (see the section) and `--grant open_askbridge_superadmin`, `open_answerd_superadmin`, `open_workforce_superadmin`, `open_tipsignal_superadmin` or `open_autofix_superadmin` (Pitline) (that product's counts, alerts and Open button). Run it in the release job's container or through `az containerapp exec`; each grant and revoke is in the audit trail.

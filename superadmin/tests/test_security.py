@@ -114,6 +114,11 @@ def test_production_refuses_a_weak_secret_key():
     assert result.returncode != 0 and "DJANGO_SECRET_KEY" in result.stderr
 
 
+def test_production_refuses_a_short_edge_proxy_secret():
+    result = _check_prod("import django;django.setup()", EDGE_PROXY_SECRET="short")
+    assert result.returncode != 0 and "EDGE_PROXY_SECRET" in result.stderr
+
+
 def test_set_password_tokens_never_reach_the_access_log():
     from apps.core.middleware import loggable_path
 
