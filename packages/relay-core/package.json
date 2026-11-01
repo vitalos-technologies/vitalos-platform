@@ -17,20 +17,20 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/deepseek": "3.0.58",
-    "@notionhq/client": "5.27.0",
-    "@supabase/supabase-js": "2.117.3",
+    "@ai-sdk/deepseek": "3.0.76",
+    "@notionhq/client": "5.29.0",
+    "@supabase/supabase-js": "2.118.0",
     "@vitalos/email-layout": "workspace:*",
     "@vitalos/security": "workspace:*",
-    "ai": "7.0.126",
+    "ai": "7.0.157",
     "server-only": "0.0.1",
-    "zod": "4.6.6"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
     "@vitalos/typescript-config": "workspace:*",
-    "eslint": "10.12.0",
+    "eslint": "10.13.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   }
 }
