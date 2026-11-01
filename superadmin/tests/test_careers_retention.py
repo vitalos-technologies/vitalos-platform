@@ -90,7 +90,9 @@ def test_retention_enforced(dataset, settings):
 def test_retention_months_setting_is_respected(dataset, settings, superadmin):
     settings.RETENTION_ENFORCE = True
     services.update_settings({"retention_months": 1}, actor=superadmin)
-    assert retention.run() == 2  # the 30-day-old decision is now due too
+    # A month after a 30-day-old decision is up to 31 days after it (on 1 Nov it is 2 Nov), so look two days
+    # ahead: the 30-day-old decision is then due on any date.
+    assert retention.run(now=timezone.now() + timedelta(days=2)) == 2
 
 
 def test_add_months_handles_month_ends():
