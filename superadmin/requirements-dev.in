@@ -5,4 +5,4 @@ pytest-django
 pip-audit
 bandit
 ruff
-playwright==1.63.0  # Chromium build 1194, the browser preinstalled in the build image
+playwright==1.64.1  # Chromium build 1194, the browser preinstalled in the build image
