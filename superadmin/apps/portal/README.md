@@ -19,6 +19,7 @@ systems. Architecture, visibility model, auth, AI boundaries and retention: [ADR
 | `push.py`, `views/push.py`                 | Push notifications: keys, endpoint allowlist, RFC 8291 encryption, VAPID, queueing, delivery and retries; the four push routes. |
 | `deliveries.py`                            | Staff delivery status: email and push in one list, summary, detail, Retry now, Cancel, capped bulk retry. Never exposes endpoints, keys or payloads. |
 | `retention.py`                             | Daily deletion of old delivery records and turned-off devices (content tick; a dry run until `RETENTION_ENFORCE=true`). |
+| `staff_selectors.py`                       | Staff-only reads, including `awaiting_decision_versions` (one query; also used by AI & Data › Delivery).   |
 | `views/`                                   | `auth.py` (sign-in, invitation, reset, TOTP), `customer.py` (workspace), `staff.py` (Super Admin tools).   |
 | `urls.py`, `preview_urls.py`, `admin_urls.py` | Customer routes; the same routes for staff preview; staff routes at `/client-portal/`.                  |
 | `management/commands/portal_seed_demo.py`  | Synthetic data for local screenshots. Refuses to run unless DEBUG is on outside production.                |
