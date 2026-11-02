@@ -1,0 +1,165 @@
+{% load aidata_ui %}{% comment %}
+  Delivery: contracted work in progress, from client portal records only (apps/aidata/lifecycle.py).
+  Context: d (DeliveryOverview), info, won, staff_links. Staff portal URLs are empty unless the viewer can open them.
+{% endcomment %}
+{% if d.projects %}
+  <p class="aid-muted mt-4 text-xs">From the client portal, read-only here: changes are made in the client portal. Counted across projects that are not complete.</p>
+
+  <section class="mt-3" aria-labelledby="delivery-counts-heading">
+    <h2 id="delivery-counts-heading" class="sr-only">Counts</h2>
+    <dl class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" data-testid="delivery-counts">
+      <div class="aid-card px-3 py-2.5" data-count="active">
+        <dt class="aid-muted text-xs">Active projects</dt>
+        <dd class="tabular text-xl font-semibold text-aid-heading">{{ d.active_projects }}</dd>
+        <dd class="aid-muted text-xs">{{ d.other_open_projects }} more planning, on hold or in handover</dd>
+      </div>
+      <div class="aid-card px-3 py-2.5" data-count="milestones-overdue">
+        <dt class="aid-muted text-xs">Milestones overdue</dt>
+        <dd class="tabular text-xl font-semibold {% if d.milestones_overdue %}text-aid-error{% else %}text-aid-heading{% endif %}">{{ d.milestones_overdue }}</dd>
+        <dd class="aid-muted text-xs">Target date passed, not complete</dd>
+      </div>
+      <div class="aid-card px-3 py-2.5" data-count="milestones-customer">
+        <dt class="aid-muted text-xs">Milestones waiting for the customer</dt>
+        <dd class="tabular text-xl font-semibold text-aid-heading">{{ d.milestones_awaiting_customer }}</dd>
+      </div>
+      <div class="aid-card px-3 py-2.5" data-count="blockers">
+        <dt class="aid-muted text-xs">Open blockers</dt>
+        <dd class="tabular text-xl font-semibold {% if d.open_blockers %}text-aid-error{% else %}text-aid-heading{% endif %}">{{ d.open_blockers }}</dd>
+        <dd class="aid-muted text-xs" data-testid="blocker-split">Vitalos {{ d.blockers_vitalos }} · Customer {{ d.blockers_customer }}</dd>
+      </div>
+      <div class="aid-card px-3 py-2.5" data-count="awaiting-decision">
+        <dt class="aid-muted text-xs">Deliverables awaiting a decision</dt>
+        <dd class="tabular text-xl font-semibold text-aid-heading">{{ d.awaiting_decision }}</dd>
+        <dd class="aid-muted text-xs">Shared versions the customer has not approved or sent back</dd>
+      </div>
+      <div class="aid-card px-3 py-2.5" data-count="changes">
+        <dt class="aid-muted text-xs">Open change requests</dt>
+        <dd class="tabular text-xl font-semibold text-aid-heading">{{ d.open_changes }}</dd>
+        <dd class="aid-muted text-xs">Submitted or under review</dd>
+      </div>
+      <div class="aid-card px-3 py-2.5" data-count="questions">
+        <dt class="aid-muted text-xs">Open customer questions</dt>
+        <dd class="tabular text-xl font-semibold text-aid-heading">{{ d.open_questions }}</dd>
+        <dd class="aid-muted text-xs">Sent, not yet answered</dd>
+      </div>
+    </dl>
+  </section>
+
+  <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+    <section class="aid-card" aria-labelledby="attention-heading" data-testid="attention">
+      <header class="flex items-start justify-between gap-2 border-b border-aid-border px-4 py-3">
+        <div class="min-w-0">
+          <h2 id="attention-heading" class="text-sm font-semibold text-aid-heading">Needs attention</h2>
+          <p class="aid-muted text-xs">Overdue milestones, blockers past their due date, and deliverables or questions waiting more than {{ d.attention_after_days }} days. Longest waiting first.</p>
+        </div>
+        <span class="aid-chip {% if d.attention_total %}aid-chip-warn{% else %}aid-chip-ok{% endif %}"><span class="sr-only">Items: </span>{{ d.attention_total }}</span>
+      </header>
+      {% if d.attention %}
+        <ul>
+          {% for item in d.attention %}
+            <li class="aid-row" data-testid="attention-item" data-kind="{{ item.kind }}">
+              <div class="min-w-[14rem] flex-1">
+                <p class="font-medium break-words text-aid-heading">{{ item.title }}</p>
+                <p class="aid-muted text-xs break-words">{{ item.detail }}</p>
+                <p class="mt-0.5 text-xs">{{ item.evidence }}</p>
+              </div>
+              {% if item.url %}<a href="{{ item.url }}" class="aid-btn aid-btn-secondary shrink-0">{{ item.action }}<span class="sr-only">: {{ item.title }}</span> {% aid_icon "arrow-right" %}</a>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+        {% if d.attention_total > d.attention|length %}<p class="aid-muted border-t border-aid-border px-4 py-2 text-xs">Showing {{ d.attention|length }} of {{ d.attention_total }}.</p>{% endif %}
+      {% else %}
+        <p class="aid-muted px-4 py-4 text-sm" data-testid="attention-empty">Nothing needs attention: no overdue milestones or blockers, and nothing has waited more than {{ d.attention_after_days }} days.</p>
+      {% endif %}
+    </section>
+    {% include "aidata/lifecycle/_needs.html" %}
+  </div>
+
+  <section class="aid-card mt-4" aria-labelledby="projects-heading">
+    <header class="border-b border-aid-border px-4 py-3">
+      <h2 id="projects-heading" class="text-sm font-semibold text-aid-heading">Projects in delivery</h2>
+      <p class="aid-muted text-xs">Planning, active, on hold or handover, latest activity first. Complete projects are left out.</p>
+    </header>
+    <div class="aid-stack">
+      <table class="aid-table aid-stack-table" data-testid="delivery-projects">
+        <caption class="sr-only">Projects in delivery, latest activity first</caption>
+        <thead>
+          <tr>
+            <th scope="col">Project</th>
+            <th scope="col">Organisation</th>
+            <th scope="col">Opportunity</th>
+            <th scope="col">Status</th>
+            <th scope="col">Next milestone</th>
+            <th scope="col" class="aid-num">Open blockers</th>
+            <th scope="col" class="aid-num">Awaiting approval</th>
+            <th scope="col" class="aid-num">Open questions</th>
+            <th scope="col">Target date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in d.projects %}
+            <tr data-project="{{ p.pk }}">
+              <td data-cell="primary">
+                {% if p.project_url %}<a href="{{ p.project_url }}" class="font-medium break-words text-aid-link hover:underline">{{ p.name }}</a>{% else %}<span class="font-medium break-words text-aid-heading">{{ p.name }}</span>{% endif %}
+                {% if not p.published %}<span class="mt-1 block"><span class="aid-chip aid-chip-neutral" data-testid="project-unpublished">Not published</span></span>{% endif %}
+              </td>
+              <td>
+                <span class="aid-cell-label">Organisation</span>
+                <div class="min-w-0 break-words">{% if p.organisation_url %}<a href="{{ p.organisation_url }}" class="text-aid-link hover:underline">{{ p.organisation }}</a>{% else %}{{ p.organisation }}{% endif %}{% if not p.organisation_active %} <span class="aid-chip aid-chip-neutral">Deactivated</span>{% endif %}</div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Opportunity</span>
+                <div class="min-w-0 break-words">{% if p.opportunity_url %}<a href="{{ p.opportunity_url }}" class="text-aid-link hover:underline" data-testid="opportunity-link"><span class="font-mono text-xs">{{ p.opportunity_ref }}</span> {{ p.opportunity_title }}</a>{% else %}<span class="aid-muted">Not linked</span>{% endif %}</div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Status</span>
+                <div><span class="aid-chip aid-chip-{{ p.tone }}">{{ p.status_label }}</span></div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Next milestone</span>
+                <div class="min-w-0 break-words">
+                  {% if p.next_milestone %}
+                    {{ p.next_milestone.title }}
+                    <span class="block text-xs {% if p.next_milestone.overdue %}font-medium text-aid-error{% else %}aid-muted{% endif %}">{% if p.next_milestone.target_date %}Target {{ p.next_milestone.target_date|date:"j M Y" }}{% else %}No target date{% endif %} · {{ p.next_milestone.status_label }}</span>
+                    {% if p.next_milestone.overdue %}<span class="mt-1 block"><span class="aid-chip aid-chip-error" data-testid="milestone-overdue">{% aid_icon "clock" "h-3.5 w-3.5" %}Overdue</span></span>{% endif %}
+                  {% else %}
+                    <span class="aid-muted">None open</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="aid-num">
+                <span class="aid-cell-label">Open blockers</span>
+                <div data-testid="project-blockers">{{ p.open_blockers }}{% if p.open_blockers %}<span class="aid-muted block text-xs">Vitalos {{ p.blockers_vitalos }} · Customer {{ p.blockers_customer }}</span>{% endif %}</div>
+              </td>
+              <td class="aid-num">
+                <span class="aid-cell-label">Awaiting approval</span>
+                <div data-testid="project-awaiting">{{ p.awaiting_decision }}</div>
+              </td>
+              <td class="aid-num">
+                <span class="aid-cell-label">Open questions</span>
+                <div data-testid="project-questions">{{ p.open_questions }}</div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Target date</span>
+                <div class="whitespace-nowrap">{% if p.target_date %}{{ p.target_date|date:"j M Y" }}{% if p.target_passed %}<span class="block text-xs font-medium text-aid-error">Passed</span>{% endif %}{% else %}<span class="aid-muted">Not set</span>{% endif %}</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <p class="aid-muted mt-3 text-xs">Opportunities won so far: {{ won }}.</p>
+{% else %}
+  <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+    {% include "aidata/lifecycle/_needs.html" %}
+    <section aria-labelledby="empty-heading">
+      <h2 id="empty-heading" class="sr-only">Current state</h2>
+      {% url 'aidata:pipeline' as pipeline_url %}
+      {% with won_url=pipeline_url|add:"?stage=won" %}
+        {% include "aidata/components/_empty_state.html" with icon="layers" title="No projects in delivery" body=info.next action_url=won_url action_label="Open won opportunities" %}
+      {% endwith %}
+      <p class="aid-muted mt-3 text-xs">Opportunities won so far: {{ won }}. Complete projects are not listed here.</p>
+    </section>
+  </div>
+{% endif %}

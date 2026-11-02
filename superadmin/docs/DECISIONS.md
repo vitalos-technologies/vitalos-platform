@@ -370,3 +370,11 @@ Design: [ADR-029](../../docs/adr/ADR-029-superadmin-enquiries-mail-console.md) (
      - **Forms.** Each section's form posts to its own URL with the same `action` values, validation, messages and audit events (`auth.password_changed`, `auth.mfa_reset`, `auth.mfa_enrolled`). Every section URL still accepts every action, so a form posted to `/account/` works as before; an invalid form comes back in its own section. A changed password now returns to Password rather than Profile, and the new-password rules show as one line of field help instead of an unstyled list.
      - **Two-step set-up** (`/account/2fa/setup/`) opens inside the shell, under Two-step sign-in, when you choose it there; it returns to Two-step sign-in. The sign-in step for a role that requires a second factor keeps the separate sign-in card, because nothing else opens until it is done.
      - **Phones.** Below `lg` the menu row keeps a focused link's whole outline inside the scroll box, and `app.js` scrolls the current link into view. Both apply to Settings too.
+
+## AI & Data Delivery and Operations from the client portal (2 Nov 2026, WS-006)
+
+137. **"Needs attention" thresholds on AI & Data › Delivery.** A shared deliverable version, or a question sent to the customer, that is still waiting after **7 days** is listed under "Needs attention" (`apps/aidata/lifecycle.py`, `ATTENTION_AFTER_DAYS`). The list shows the 8 that have waited longest (`ATTENTION_LIMIT`), then "Showing n of m".
+     - **Why seven days.** It is one weekly status-update cycle, the rhythm the statement-of-work template suggests. It is a prompt to follow up, not the contractual review period, which each statement of work sets.
+     - **Dates already in the record.** Overdue milestones and blockers past their due date are listed from the day after their date.
+     - **No new stale rule.** Operations marks a service Stale with the portal's existing rule, `PORTAL_STATUS_STALE_HOURS` (default 72), through `apps.portal.selectors.stale_before`.
+     - **"Latest" on Operations.** Staff see the newest report they recorded, published or not. A "Not published" or "Latest report not published" chip says when the customer does not see it.
