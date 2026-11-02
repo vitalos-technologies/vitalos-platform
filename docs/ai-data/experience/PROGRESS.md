@@ -68,6 +68,25 @@ Outside this implementation's scope:
 
 ## Log
 
+- **2 Nov 17:05: AI & Data Delivery and Operations read the client portal (W17; WS-006).**
+  - **Delivery** (`/ai-data/lifecycle/delivery/`) replaces its empty state with portal records for projects that are not complete:
+    - counts: active projects, overdue milestones, milestones waiting for the customer, open blockers (Vitalos and customer), deliverable versions awaiting a decision, open change requests, open questions;
+    - "Needs attention": overdue milestones, blockers past due, and deliverables or questions waiting more than 7 days (DECISIONS 136);
+    - a table of projects, latest activity first: organisation, project, linked opportunity, status, next milestone with an Overdue marker, counts and target date.
+  - **Operations** (`/ai-data/lifecycle/operations/`): each managed service with its newest status report, the source label, the reported time and a Stale marker from the portal's own rule (`PORTAL_STATUS_STALE_HOURS`).
+  - **Rules:**
+    - Access is unchanged: SuperAdmin and ServiceLead; Viewers and users without a role get 403.
+    - Client portal staff links are built only for staff who can open them.
+    - Rows are built from an allow-list of fields, so no internal note is loaded.
+    - Queries are fixed: 6 for Delivery and 2 for Operations, plus the page's own.
+    - "Awaiting a decision" is the portal's rule written as one query (`staff_selectors.awaiting_decision_versions`); the Client portal overview now uses it too.
+    - The "What this stage needs" panels say what is connected and what is still not built.
+    - No migration and no new dependency.
+  - **Evidence:**
+    - `tests/test_aidata_lifecycle_data.py` passes (16 tests). It covers counts, the table, attention, complete projects left out, links, access, a planted internal-note marker on every model, empty states, latest report and stale, and the query bound.
+    - Playwright on synthetic seed data: no horizontal overflow at 320, 390, 768, 1024 or 1440. axe WCAG 2.2 AA finds 0 violations on both pages, with data and empty, light and dark, at 1440 and 390.
+    - Screenshots are in the W17 scratchpad (`shots/w17/`).
+
 - **30 Oct 11:05: Files upload, Account settings layout, readable email links (W14; merged as vitalos-technologies/vitalos-platform#116).**
   - **Push, confirmed on a real phone:** the owner's own test after the Phase 2 deploy passed on 30 Oct 2026 (Android Chrome or desktop; the owner said "test notification worked"). This closes the "Next" step of the Phase 2 entry below.
   - **Files, "Upload a file":** a primary button at the top right of Files (and in the empty state) opens a native `<dialog>` with the file, the challenge (only this organisation's shared challenges), an optional project (published, grouped by challenge, filtered by the chosen challenge) and an optional title.

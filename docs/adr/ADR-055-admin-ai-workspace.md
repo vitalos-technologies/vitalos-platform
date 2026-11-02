@@ -27,7 +27,13 @@
 
 ## Boundaries and later phases
 
-- Delivery (tasks, test cases, progress, blockers), managed operations (incidents, exceptions) and product incubation (recurring-need evidence, reusable components) have navigation and honest empty states (`/ai-data/lifecycle/<stage>/`) and a description of the data each needs. No data is invented. Project, milestone and deliverable data arrive from the client portal when the main session connects it.
+- **Delivery and managed operations read the client portal (WS-006, 2 Nov 2026).** Both pages are read-only, staff-only (the same SuperAdmin and ServiceLead gate) and built in `apps/aidata/lifecycle.py`. Rows reach the template as view models from an allow-list of fields, so no `internal_notes` is ever loaded. Each page runs a fixed number of queries (six for Delivery, two for Operations). No data is invented.
+  - **Delivery** (`/ai-data/lifecycle/delivery/`) covers projects that are not complete.
+    - Counts: active projects; overdue milestones; milestones waiting for the customer; open blockers by party; deliverable versions awaiting a decision (`staff_selectors.awaiting_decision_versions`, the portal's own rule as one query); open change requests; questions sent and not answered.
+    - "Needs attention": overdue milestones, blockers past due, and deliverables or questions waiting more than seven days (`ATTENTION_AFTER_DAYS`; Super Admin DECISIONS 136).
+    - A table of projects, latest activity first, with the next milestone and its target date, counts, and links to the opportunity and to the Client portal staff pages (the latter only for staff who can open them, `staff_can_manage`).
+  - **Operations** (`/ai-data/lifecycle/operations/`) lists each managed service's newest status report with its source (all reports are manual today) and a Stale marker from the portal's own rule (`selectors.stale_before`, `PORTAL_STATUS_STALE_HOURS`).
+  - **Still not built, and labelled so:** tasks and test cases, progress summaries, incidents, exceptions and monthly report data. Product incubation (recurring-need evidence, reusable components) is unchanged.
 - AI drafting of proposal wording is deliberately not built: commercial text stays rules-assembled from approved inputs.
 - The website client (W6) must sign requests with scope `assist` (`apps/web/src/features/content/signing.ts` scopes).
 - Owner steps before live use: set `AI_DATA_LLM_API_KEY` in the secret store, switch on "Live model path" and "Website brief assist" in AI settings, run a live evaluation, and decide on scheduling `aidata_retention`.

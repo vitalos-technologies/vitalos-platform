@@ -1,0 +1,15 @@
+{# "What this stage needs": each row says honestly whether its data is connected or not built. Context: info. #}
+<section class="aid-card" aria-labelledby="needs-heading" data-testid="needs">
+  <h2 id="needs-heading" class="border-b border-aid-border px-4 py-3 text-sm font-semibold text-aid-heading">What this stage needs</h2>
+  <ul>
+    {% for need in info.needs %}
+      <li class="aid-row" data-need="{{ need.tone }}">
+        <div class="min-w-0 flex-1">
+          <p class="font-medium text-aid-heading">{{ need.name }}</p>
+          <p class="aid-muted text-xs">{{ need.source }}</p>
+          <p class="mt-1"><span class="aid-chip aid-chip-{{ need.tone }}">{{ need.status }}</span></p>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>

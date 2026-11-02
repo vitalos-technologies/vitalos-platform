@@ -1,0 +1,103 @@
+{% load aidata_ui %}{% comment %}
+  Managed operations: each managed service with its latest status report, from the client portal
+  (apps/aidata/lifecycle.py). Context: o (OperationsOverview), info, staff_links. Staff portal URLs are empty
+  unless the viewer can open them.
+{% endcomment %}
+{% if o.services %}
+  <p class="aid-muted mt-4 text-xs">From the client portal, read-only here. No live monitoring is connected: every status is reported by a person. A report older than {{ o.stale_hours }} hours is stale (the portal's own rule).</p>
+
+  <section class="mt-3" aria-labelledby="ops-counts-heading">
+    <h2 id="ops-counts-heading" class="sr-only">Counts</h2>
+    <dl class="grid grid-cols-2 gap-2 sm:grid-cols-3" data-testid="operations-counts">
+      <div class="aid-card px-3 py-2.5" data-count="services">
+        <dt class="aid-muted text-xs">Managed services</dt>
+        <dd class="tabular text-xl font-semibold text-aid-heading">{{ o.total }}</dd>
+        <dd class="aid-muted text-xs">{{ o.no_report }} with no report yet</dd>
+      </div>
+      <div class="aid-card px-3 py-2.5" data-count="problems">
+        <dt class="aid-muted text-xs">Incident or degraded</dt>
+        <dd class="tabular text-xl font-semibold {% if o.problems %}text-aid-error{% else %}text-aid-heading{% endif %}">{{ o.problems }}</dd>
+        <dd class="aid-muted text-xs">By the latest report</dd>
+      </div>
+      <div class="aid-card col-span-2 px-3 py-2.5 sm:col-span-1" data-count="stale">
+        <dt class="aid-muted text-xs">Stale</dt>
+        <dd class="tabular text-xl font-semibold text-aid-heading">{{ o.stale }}</dd>
+        <dd class="aid-muted text-xs">Latest report older than {{ o.stale_hours }} hours</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="aid-card mt-4" aria-labelledby="services-heading">
+    <header class="border-b border-aid-border px-4 py-3">
+      <h2 id="services-heading" class="text-sm font-semibold text-aid-heading">Managed services</h2>
+      <p class="aid-muted text-xs">Incidents and degraded services first, then stale reports.</p>
+    </header>
+    <div class="aid-stack">
+      <table class="aid-table aid-stack-table" data-testid="operations-services">
+        <caption class="sr-only">Managed services and their latest status report</caption>
+        <thead>
+          <tr>
+            <th scope="col">Service</th>
+            <th scope="col">Organisation</th>
+            <th scope="col">Project</th>
+            <th scope="col">Latest status</th>
+            <th scope="col">Source</th>
+            <th scope="col">Reported</th>
+            {% if staff_links %}<th scope="col"><span class="sr-only">Action</span></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in o.services %}
+            <tr data-service="{{ s.pk }}" data-status="{{ s.status|default:'none' }}"{% if s.stale %} data-stale="true"{% endif %}>
+              <td data-cell="primary">
+                <span class="font-medium break-words text-aid-heading">{{ s.name }}</span>
+                {% if s.visibility_note %}<span class="mt-1 block"><span class="aid-chip aid-chip-neutral" data-testid="service-visibility">{{ s.visibility_note }}</span></span>{% endif %}
+              </td>
+              <td>
+                <span class="aid-cell-label">Organisation</span>
+                <div class="min-w-0 break-words">{% if s.organisation_url %}<a href="{{ s.organisation_url }}" class="text-aid-link hover:underline">{{ s.organisation }}</a>{% else %}{{ s.organisation }}{% endif %}{% if not s.organisation_active %} <span class="aid-chip aid-chip-neutral">Deactivated</span>{% endif %}</div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Project</span>
+                <div class="min-w-0 break-words">{% if s.project %}{% if s.project_url %}<a href="{{ s.project_url }}" class="text-aid-link hover:underline">{{ s.project }}</a>{% else %}{{ s.project }}{% endif %}{% else %}<span class="aid-muted">None</span>{% endif %}</div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Latest status</span>
+                <div class="min-w-0 break-words">
+                  <span class="aid-chip aid-chip-{{ s.tone }}" data-testid="service-status">{% if s.tone == "error" %}{% aid_icon "error" "h-3.5 w-3.5" %}{% elif s.tone == "warn" %}{% aid_icon "warning" "h-3.5 w-3.5" %}{% elif s.tone == "ok" %}{% aid_icon "success" "h-3.5 w-3.5" %}{% endif %}{{ s.status_label }}</span>
+                  {% if s.summary %}<span class="aid-muted mt-0.5 block text-xs">{{ s.summary|truncatechars:140 }}</span>{% endif %}
+                </div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Source</span>
+                <div data-testid="service-source">{% if s.has_report %}{{ s.source_label }}{% else %}<span class="aid-muted">None</span>{% endif %}</div>
+              </td>
+              <td>
+                <span class="aid-cell-label">Reported</span>
+                <div>{% if s.reported_at %}<time datetime="{{ s.reported_at|date:'c' }}" class="whitespace-nowrap">{{ s.reported_at|date:"j M Y, H:i" }}</time>{% if s.stale %}<span class="mt-1 block"><span class="aid-chip aid-chip-warn" data-testid="service-stale">{% aid_icon "clock" "h-3.5 w-3.5" %}Stale</span></span>{% endif %}{% else %}<span class="aid-muted">Never</span>{% endif %}</div>
+              </td>
+              {% if staff_links %}
+                <td data-cell="actions">{% if s.report_url %}<a href="{{ s.report_url }}" class="aid-btn aid-btn-secondary">Report status<span class="sr-only">: {{ s.name }}</span></a>{% endif %}</td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="mt-4">{% include "aidata/lifecycle/_needs.html" %}</div>
+{% else %}
+  <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+    {% include "aidata/lifecycle/_needs.html" %}
+    <section aria-labelledby="empty-heading">
+      <h2 id="empty-heading" class="sr-only">Current state</h2>
+      {% if staff_links %}
+        {% url 'portaladmin:home' as portal_url %}
+        {% include "aidata/components/_empty_state.html" with icon="layers" title="No managed services yet" body=info.next action_url=portal_url action_label="Open the client portal" %}
+      {% else %}
+        {% include "aidata/components/_empty_state.html" with icon="layers" title="No managed services yet" body=info.next %}
+      {% endif %}
+    </section>
+  </div>
+{% endif %}
