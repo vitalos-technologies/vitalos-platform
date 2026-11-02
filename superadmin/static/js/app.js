@@ -457,6 +457,28 @@
     showToast("Network error. Check your connection and try again.", "error");
   });
 
+  // Section menus (Settings, Account & security): below lg the menu is a scrollable row. Bring a link fully into
+  // view there without moving the page: the current section on load and after the Settings region swaps, and any
+  // link that takes keyboard focus (browsers leave a partly visible one where it is, cutting off its focus ring).
+  function revealInMenu(link) {
+    var menu = link && link.closest(".settings-menu");
+    if (!menu || menu.scrollWidth <= menu.clientWidth) return;
+    var box = menu.getBoundingClientRect();
+    var rect = link.getBoundingClientRect();
+    if (rect.left < box.left + 8) menu.scrollLeft -= box.left + 8 - rect.left;
+    else if (rect.right > box.right - 8) menu.scrollLeft += rect.right - (box.right - 8);
+  }
+  function revealCurrentSection() {
+    revealInMenu(document.querySelector('.settings-menu a[aria-current="page"]'));
+  }
+  revealCurrentSection();
+  document.addEventListener("htmx:afterSwap", function (event) {
+    if (event.detail.target && event.detail.target.id === "settings-region") revealCurrentSection();
+  });
+  document.addEventListener("focusin", function (event) {
+    if (event.target.closest && event.target.closest(".settings-menu")) revealInMenu(event.target);
+  });
+
   // Sidebar dropdowns (Mail): show or hide the child links.
   document.addEventListener("click", function (event) {
     var toggle = event.target.closest("[data-nav-toggle]");

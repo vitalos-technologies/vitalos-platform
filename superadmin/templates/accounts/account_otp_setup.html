@@ -1,0 +1,21 @@
+{% extends "accounts/_shell.html" %}
+{% load static %}
+{% block section_title %}Set up two-factor authentication{% endblock %}
+{% block settings_panel %}
+  <section class="card max-w-3xl p-6" aria-labelledby="account-otp-setup-title" data-testid="account-otp-setup">
+    <h2 id="account-otp-setup-title" class="mb-2 font-semibold">Set up two-factor authentication</h2>
+    <div class="max-w-md">
+      {% include "accounts/_otp_enrol.html" %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        {% include "partials/form_fields.html" %}
+        <div class="mt-6 flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-primary">Turn on two-factor authentication</button>
+          <a href="{% url 'accounts:account_two_step' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/otp.js' %}" nonce="{{ csp_nonce }}" defer></script>{% endblock %}

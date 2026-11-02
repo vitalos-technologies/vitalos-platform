@@ -1,0 +1,56 @@
+{% extends "portal/settings_base.html" %}
+{% load portal_ui %}
+{% block title %}Notifications on this device · Your account · Vitalos client portal{% endblock %}
+{% block settings %}
+  {# Push notifications (ADR-056, Phase 2). The server shows what it knows; portal.js swaps in this device's state. #}
+  {# The permission request only ever runs from the "Turn on" button. Never in staff preview (the view sends it to Profile). #}
+  <section class="card push" id="device" data-push aria-labelledby="push-title" data-testid="push-card"{% if push.available %} data-push-key="{{ push.public_key }}" data-push-subscribe="{% purl 'push_subscribe' %}" data-push-unsubscribe="{% purl 'push_unsubscribe' %}" data-push-test="{% purl 'push_test' %}" data-push-devices="{{ push.digests }}"{% endif %}>
+    <h2 id="push-title">Notifications on this device</h2>
+    <p class="mt-1">Get a notification when something needs you. It says only what kind of thing happened, for example "A new question needs your answer", never names or project details. Signing out turns notifications off on this device.</p>
+    {% if not push.available %}
+      <p class="notice" data-push-state="unavailable">Notifications on this device aren't available yet. You'll still get email, and everything appears under Notifications.</p>
+    {% else %}
+      <p class="notice" data-push-state="unsupported">This browser can't show notifications from the portal, or JavaScript is turned off. You'll still get email, and everything appears under Notifications.</p>
+      <div data-push-state="ios" hidden>
+        <p><strong>Install the app first:</strong> tap Share, then Add to Home Screen, then turn notifications on from the app.</p>
+        <p class="help">On iPhone and iPad, notifications work only in the installed app (iOS 16.4 or later).</p>
+      </div>
+      <div data-push-state="off" hidden>
+        <p><button type="button" class="btn" data-push-on>Turn on notifications</button></p>
+        <p class="help">Your browser will ask for permission.</p>
+      </div>
+      <div data-push-state="on" hidden>
+        <p><span class="badge badge--ok">On</span> <strong>Notifications are on for this device.</strong></p>
+        <div class="row push__actions">
+          <button type="button" class="btn btn--secondary" data-push-test-button>Send a test notification</button>
+          <button type="button" class="btn btn--ghost" data-push-off>Turn off</button>
+        </div>
+      </div>
+      <div data-push-state="blocked" hidden>
+        <p><span class="badge badge--warn">Blocked</span> <strong>Notifications are blocked for this site.</strong></p>
+        <p>To allow them, open your browser's settings for this site (the icon beside the address), set Notifications to Allow, then reload this page.</p>
+        <p class="help">In the installed app on Android: App info, then Notifications. On iPhone or iPad: Settings, Notifications, then Vitalos.</p>
+      </div>
+      <p class="push__status" role="status" aria-live="polite" data-push-status></p>
+    {% endif %}
+    <p class="help mt-1">Choose which kinds of notification you get in <a href="{% purl 'notification_preferences' %}">Notification preferences</a>.</p>
+    {% if push.devices %}
+      <h3 class="push__heading">Devices with notifications on</h3>
+      <ul class="list push__devices" data-testid="push-devices">
+        {% for device in push.devices %}
+          <li class="push__device" data-push-device="{{ device.digest }}">
+            <div class="push__device-text">
+              <strong>{{ device.label }}</strong> <span class="badge badge--info" data-push-this hidden>This device</span>
+              <span class="help push__device-date">Added {{ device.created_at|date:"j M Y" }}</span>
+            </div>
+            <form method="post" action="{% purl 'push_unsubscribe' %}">
+              {% csrf_token %}
+              <input type="hidden" name="subscription" value="{{ device.pk }}">
+              <button type="submit" class="btn btn--secondary btn--sm">Remove<span class="sr-only"> {{ device.label }}, added {{ device.created_at|date:"j M Y" }}</span></button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+{% endblock %}

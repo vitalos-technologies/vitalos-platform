@@ -1,0 +1,26 @@
+{% extends "portal/settings_base.html" %}
+{% load portal_ui %}
+{% block title %}Sign-in &amp; security · Your account · Vitalos client portal{% endblock %}
+{% block settings %}
+  <section class="card" aria-labelledby="security-title" data-testid="settings-security">
+    <h2 id="security-title">Sign-in &amp; security</h2>
+    <ul class="list settings__rows">
+      <li class="settings__row">
+        <div>
+          <h3 class="settings__row-title">Two-step sign-in</h3>
+          <p class="help">After your password, enter a 6-digit code from an authenticator app.</p>
+        </div>
+        <div class="settings__row-action">
+          {% if mfa %}<span class="badge badge--ok">On</span>{% else %}<span class="badge">Off</span>{% endif %}
+          {% if not mfa and not preview %}<a class="btn btn--secondary btn--sm" href="{% purl 'otp_setup' %}">Turn on</a>{% endif %}
+        </div>
+      </li>
+      <li class="settings__row">
+        <div>
+          <h3 class="settings__row-title">Password</h3>
+          <p class="help">To change your password, use "Forgot your password?" on the sign-in page.</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+{% endblock %}

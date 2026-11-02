@@ -380,7 +380,7 @@ def test_more_menu_still_holds_files_search_account_and_sign_out(world):
 
 
 def test_account_page_offers_install_guidance_without_a_popup(world):
-    page = client_for(world.approver.user).get("/portal/account/").content.decode()
+    page = client_for(world.approver.user).get("/portal/account/install/").content.decode()
     card = re.search(r'<section class="card install".*?</section>', page, re.S).group(0)
     assert "Install the app" in card
     assert "tap Share, then Add to Home Screen" in card  # the manual steps are in the server HTML

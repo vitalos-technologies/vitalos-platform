@@ -317,7 +317,7 @@ class Smoke:
         expect(self.page.get_by_text(names["practice"])).to_have_count(0)
         self.check("smoke records archived (history kept)", True)
         if self.enrolled_secret:
-            self.page.goto(self.url("/account/"))
+            self.page.goto(self.url("/account/two-step/"))
             self.page.get_by_text("Replace authenticator").click()
             self.page.get_by_label("Current password").fill(password)
             self.page.get_by_role("button", name="Remove authenticator and sign out").click()

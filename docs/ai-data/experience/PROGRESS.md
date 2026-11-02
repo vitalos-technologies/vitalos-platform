@@ -68,6 +68,17 @@ Outside this implementation's scope:
 
 ## Log
 
+- **2 Nov 11:40: Account pages as section menus, admin and portal (W16; worktree branch, for the lead to integrate).**
+  - **Owner's ask:** the settings on a left sidebar with the content on the right, for the Super Admin account page and the portal account page too, like Settings after #117.
+  - **Super Admin › Account & security:** Profile (`/account/`), Password (`/account/password/`) and Two-step sign-in (`/account/two-step/`) are separate pages in the Settings layout, now one shared partial. Every form keeps its `action`, validation, messages and audit events, and `/account/` still accepts all of them. Two-step set-up opens inside the shell when chosen from Account; at a required sign-in it keeps the sign-in card. Superadmin decision 136.
+  - **Client portal › Your account:** Profile (`/account/`), Sign-in & security (`/account/security/`, with set-up at `/account/security/two-step/`), Notifications on this device (`/account/device/`), Notification preferences and Install the app (`/account/install/`) are separate pages. The push and install hooks live on their own pages, staff preview still hides device and install, and the anchor-tracking script is gone. No service worker or `pwa.py` change.
+  - **Phones:** the menu row scrolls the current item, and any item that takes keyboard focus, fully into view, with its focus ring inside the row (admin and portal; Settings benefits too).
+  - **Evidence:**
+    - The full Super Admin suite passes on PostgreSQL 16 (1863 tests), with 10 new tests in `tests/test_account_sections.py` and the portal shell tests in `tests/test_portal_files_upload_ui.py` rewritten for one page per section (14 tests). Existing tests that opened the device or install card, or two-step set-up, now open their new URLs; their intent is unchanged.
+    - Playwright on synthetic seed data: axe WCAG 2.2 AA finds 0 violations over 50 runs (every section of both pages, light and dark, 1440 and 390, plus staff preview and Settings). There is no horizontal overflow at 320, 390 or 1440, and the keyboard focus ring stays whole in the phone menu rows.
+    - Screenshots are in the W16 scratchpad (`shots/w16/`).
+  - **Next:** the lead integrates and merges; after deploy, check one admin and one portal account page on a phone.
+
 - **30 Oct 11:05: Files upload, Account settings layout, readable email links (W14; merged as vitalos-technologies/vitalos-platform#116).**
   - **Push, confirmed on a real phone:** the owner's own test after the Phase 2 deploy passed on 30 Oct 2026 (Android Chrome or desktop; the owner said "test notification worked"). This closes the "Next" step of the Phase 2 entry below.
   - **Files, "Upload a file":** a primary button at the top right of Files (and in the empty state) opens a native `<dialog>` with the file, the challenge (only this organisation's shared challenges), an optional project (published, grouped by challenge, filtered by the chosen challenge) and an optional title.

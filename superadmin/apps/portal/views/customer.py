@@ -54,6 +54,9 @@ NAV = {
     "notifications": "notifications",
     "notification_preferences": "account",
     "account": "account",
+    "account_security": "account",
+    "account_device": "account",
+    "account_install": "account",
     "otp_setup": "account",
 }
 
@@ -823,24 +826,56 @@ def notification_preferences(request, ctx):
     )
 
 
+# --- Your account: one page per section in the settings shell (settings_base.html) ---------------------------------
+# settings_section marks the menu item (aria-current). Notifications on this device and Install the app belong to the
+# member's own browser, so staff preview has neither (their menu items are hidden and their URLs go to Profile).
+
+
 @portal_view()
 @require_GET
 def account(request, ctx):
+    return show(request, ctx, "portal/account.html", {"settings_section": "profile"})
+
+
+@portal_view()
+@require_GET
+def account_security(request, ctx):
     from apps.accounts.otp import confirmed_devices
 
     return show(
         request,
         ctx,
-        "portal/account.html",
+        "portal/account_security.html",
         {
             "mfa": confirmed_devices(ctx.user).exists() if not ctx.preview else False,
-            "role_help": ctx.member.get_role_display(),
-            # Push notifications (ADR-056, Phase 2): the member's own devices; never shown in staff preview.
-            "push": None if ctx.preview else portal_push.page_context(ctx.user),
-            # The account settings menu (settings_base.html): sections are anchors on this page.
-            "settings_section": "profile",
+            "settings_section": "security",
         },
     )
+
+
+@portal_view()
+@require_GET
+def account_device(request, ctx):
+    if ctx.preview:
+        return go(request, "account")
+    return show(
+        request,
+        ctx,
+        "portal/account_device.html",
+        {
+            # Push notifications (ADR-056, Phase 2): the member's own devices.
+            "push": portal_push.page_context(ctx.user),
+            "settings_section": "device",
+        },
+    )
+
+
+@portal_view()
+@require_GET
+def account_install(request, ctx):
+    if ctx.preview:
+        return go(request, "account")
+    return show(request, ctx, "portal/account_install.html", {"settings_section": "install"})
 
 
 @portal_view(write=True)

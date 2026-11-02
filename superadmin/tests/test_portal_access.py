@@ -223,13 +223,13 @@ def test_optional_totp_second_factor(world):
     client = Client()
     client.post("/portal/sign-in/", {"email": world.approver.user.email, "password": PASSWORD})
     assert client.get("/portal/account/").status_code == 200
-    page = client.get("/portal/account/security/")
+    page = client.get("/portal/account/security/two-step/")
     assert page.status_code == 200 and b"<svg" in page.content
     device = TOTPDevice.objects.get(user=world.approver.user, confirmed=False)
     from django_otp.oath import totp
 
     token = f"{totp(device.bin_key, step=device.step, t0=device.t0, digits=device.digits):06d}"
-    assert client.post("/portal/account/security/", {"token": token}).status_code == 302
+    assert client.post("/portal/account/security/two-step/", {"token": token}).status_code == 302
     # A fresh sign-in now needs the code.
     second = Client()
     second.post("/portal/sign-in/", {"email": world.approver.user.email, "password": PASSWORD})

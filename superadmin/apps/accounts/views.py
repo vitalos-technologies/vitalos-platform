@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import get_user_model, update_session_auth_hash
+from django.contrib.auth import get_user_model, password_validation, update_session_auth_hash
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
@@ -41,7 +41,12 @@ from .tokens import set_password_token
 
 
 class StyledPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # The same rules as one line of field help, instead of the validators' HTML list (which broke out of it).
+        self.fields["new_password1"].help_text = " ".join(
+            password_validation.password_validators_help_texts()
+        )
 
 
 class StyledSetPasswordForm(StyledFormMixin, SetPasswordForm):
@@ -133,14 +138,20 @@ def otp_setup(request):
             messages.success(request, "Two-factor authentication is on.")
             return HttpResponseRedirect(_next_url(request))
         form.add_error("token", "That code did not match. Scan the QR code again and enter the current code.")
+    required = otp.otp_required(user)
     context = {
         "form": form,
         "qr_svg": otp.qr_svg(device),
         "secret": otp.base32_secret(device),
-        "required": otp.otp_required(user),
+        "required": required,
         "next": _next_url(request, default=""),
     }
-    return render(request, "accounts/otp_setup.html", context)
+    if required and not user.is_verified():
+        # The sign-in step: the role requires a second factor, so nothing else opens until it is set up.
+        return render(request, "accounts/otp_setup.html", context)
+    # Chosen from Account & security: set-up opens in that shell, under Two-step sign-in.
+    context.update(section="two_step", role=primary_role(user))
+    return render(request, "accounts/account_otp_setup.html", context)
 
 
 @require_POST
@@ -200,11 +211,22 @@ def forgot_password(request):
     return render(request, "accounts/forgot_password.html", {"form": form})
 
 
-@login_required
-@require_http_methods(["GET", "POST"])
-def account(request):
+# Account & security: one URL per section (the Settings layout), sections "profile", "password" and "two_step", each
+# rendered from accounts/account_<section>.html. Each section's form posts to its own URL with the same ``action``
+# values as before, and every section URL still accepts every action, so a form posted to /account/ behaves exactly as
+# it always has. A form that does not validate comes back in its own section.
+
+
+def _section_of(action, default):
+    if action == "reset_2fa":
+        return "two_step"
+    return action if action in ("profile", "password") else default
+
+
+def _account_section(request, section):
     user = request.user
     action = request.POST.get("action") if request.method == "POST" else None
+    section = _section_of(action, section)
     profile_form = ProfileForm(request.POST if action == "profile" else None, instance=user)
     password_form = StyledPasswordChangeForm(user, request.POST if action == "password" else None)
     reset_form = ConfirmPasswordForm(user, request.POST if action == "reset_2fa" else None)
@@ -217,7 +239,7 @@ def account(request):
         update_session_auth_hash(request, password_form.user)
         record("auth.password_changed", request=request, entity=user, summary="Password changed")
         messages.success(request, "Password changed.")
-        return redirect("accounts:account")
+        return redirect("accounts:account_password")
     if action == "reset_2fa" and reset_form.is_valid():
         TOTPDevice.objects.filter(user=user).delete()
         record("auth.mfa_reset", request=request, entity=user, summary="Authenticator removed")
@@ -225,6 +247,7 @@ def account(request):
         messages.info(request, "Your authenticator was removed. Sign in again to enrol a new one.")
         return redirect("accounts:login")
     context = {
+        "section": section,
         "profile_form": profile_form,
         "password_form": password_form,
         "reset_form": reset_form,
@@ -232,7 +255,25 @@ def account(request):
         "otp_required": otp.otp_required(user),
         "role": primary_role(user),
     }
-    return render(request, "accounts/account.html", context)
+    return render(request, f"accounts/account_{section}.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def account(request):
+    return _account_section(request, "profile")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def account_password(request):
+    return _account_section(request, "password")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def account_two_step(request):
+    return _account_section(request, "two_step")
 
 
 # --- Settings: users & roles -------------------------------------------------------------------

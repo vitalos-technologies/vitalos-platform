@@ -538,7 +538,7 @@ def test_a_member_can_only_touch_their_own_devices(world, vapid, transport):
     assert other.post("/portal/push/test/", {"subscription": mine.pk}).status_code == 404
     # Their own device: removed, and the device list no longer shows it.
     response = client.post("/portal/push/unsubscribe/", {"subscription": mine.pk})
-    assert response.status_code == 302 and response["Location"] == "/portal/account/"
+    assert response.status_code == 302 and response["Location"] == "/portal/account/device/"
     assert not PushSubscription.objects.filter(pk=mine.pk).exists()
     assert set(PushSubscription.objects.values_list("pk", flat=True)) == {theirs.pk, other_org.pk}
 
@@ -648,7 +648,7 @@ def test_test_notification_goes_to_the_members_own_device(world, vapid, transpor
     assert message == {
         "title": "Vitalos",
         "body": "Test notification: notifications work on this device.",
-        "url": "/portal/account/",
+        "url": "/portal/account/device/",
         "tag": "vitalos-test",
     }
     assert call["headers"]["Topic"] == "portal-test"
@@ -971,7 +971,7 @@ def test_without_a_key_push_is_off_everywhere(world, settings, transport):
     )
     assert post_json(client, "/portal/push/test/", {"endpoint": fcm()}).status_code == 404
     assert post_json(client, "/portal/push/renew/", {}).status_code == 204
-    page = client.get("/portal/account/")
+    page = client.get("/portal/account/device/")
     assert page.status_code == 200
     card = re.search(r'<section class="card push".*?</section>', page.content.decode(), re.S).group(0)
     assert "Notifications on this device aren't available yet." in card
@@ -991,7 +991,7 @@ def test_without_a_key_existing_devices_can_still_be_removed(world, vapid, setti
     sub, _ = add_device(world.approver)
     settings.PORTAL_PUSH_VAPID_PRIVATE_KEY = ""
     client = client_for(world.approver.user)
-    assert "Chrome on Android" in client.get("/portal/account/").content.decode()
+    assert "Chrome on Android" in client.get("/portal/account/device/").content.decode()
     assert client.post("/portal/push/unsubscribe/", {"subscription": sub.pk}).status_code == 302
     assert not PushSubscription.objects.exists()
     assert client.post("/portal/push/test/", {"subscription": sub.pk}).status_code == 404
@@ -1053,7 +1053,7 @@ def push_card(html: str) -> str:
 def test_account_card_renders_every_state_and_the_device_list(world, vapid):
     sub, _ = add_device(world.approver)
     add_device(world.contrib)
-    page = client_for(world.approver.user).get("/portal/account/").content.decode()
+    page = client_for(world.approver.user).get("/portal/account/device/").content.decode()
     card = push_card(page)
     assert f'data-push-key="{push.public_key()}"' in card
     assert (
@@ -1088,6 +1088,11 @@ def test_pages_carry_the_rotation_sync_and_the_sign_out_field(world, vapid):
     page = client_for(world.approver.user).get("/portal/").content.decode()
     assert 'data-sw="/portal/sw.js" data-sw-scope="/portal/" data-push-sync="/portal/push/subscribe/"' in page
     assert '<input type="hidden" name="push_endpoint" value="" data-push-endpoint>' in page
+
+
+def test_preferences_link_to_the_device_page_until_a_device_is_on(world, vapid):
+    page = client_for(world.approver.user).get("/portal/notifications/preferences/").content.decode()
+    assert '<a href="/portal/account/device/">Notifications on this device</a>' in page
 
 
 def test_preferences_page_has_push_toggles_beside_email(world, vapid):

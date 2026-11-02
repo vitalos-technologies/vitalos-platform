@@ -39,11 +39,12 @@ def _json_body(request) -> dict | None:
 
 
 def _answer(request, *, ok: bool, message: str, status: int = 200, **extra):
-    """JSON for the Account page script; a message and a redirect back to Account for a plain form."""
+    """JSON for the device page script; a message and a redirect back to Notifications on this device for a plain
+    form."""
     if _wants_json(request):
         return JsonResponse({"ok": ok, "message": message, **extra}, status=status)
     (messages.success if ok else messages.error)(request, message)
-    return HttpResponseRedirect(portal_path(request, "account"))
+    return HttpResponseRedirect(portal_path(request, "account_device"))
 
 
 def _no_store(response):
