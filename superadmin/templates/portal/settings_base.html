@@ -1,6 +1,6 @@
 {% extends "portal/base.html" %}
 {% load portal_ui %}
-{# Account settings shell: the section menu beside the content (a chip row above it at 52rem or narrower). Account, Notification preferences and two-step sign-in set up share it. Views pass settings_section for the server's aria-current. #}
+{# Account settings shell: the section menu beside the content (a scrollable chip row above it at 52rem or narrower) and one section per page: Profile, Sign-in & security (with two-step set-up), Notifications on this device, Notification preferences and Install the app. Views pass settings_section for aria-current. #}
 {% block content %}
   <div class="page-head"><div><h1>Your account</h1><p class="lede">Your profile, sign-in, notifications and the app, for {{ organisation.name }}.</p></div></div>
   <div class="settings">

@@ -593,7 +593,7 @@ def _payload(delivery: PushDelivery) -> bytes:
     if delivery.notification_id:
         url = _portal_path("notification_open", {"pk": delivery.notification_id})
     else:
-        url = _portal_path("account")
+        url = _portal_path("account_device")  # the test notification opens the page it was sent from
     message = message_for(delivery.kind, url)
     return json.dumps(message, separators=(",", ":")).encode("utf-8")
 
@@ -892,7 +892,7 @@ def send_test(sub: PushSubscription, *, request=None) -> tuple[bool, str]:
 
 
 def page_context(user) -> dict:
-    """What the Account page needs for the "Notifications on this device" card and the device list."""
+    """What Account › Notifications on this device needs for its card and the device list."""
     listed = list(devices(user))
     for sub in listed:
         sub.digest = endpoint_digest(sub.endpoint)

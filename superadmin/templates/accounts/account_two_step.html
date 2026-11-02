@@ -1,0 +1,23 @@
+{% extends "accounts/_shell.html" %}
+{% block section_title %}Two-step sign-in{% endblock %}
+{% block settings_panel %}
+  <section class="card max-w-3xl p-6" aria-labelledby="account-two-step-title" data-testid="account-two-step">
+    <h2 id="account-two-step-title" class="font-semibold">Two-step sign-in</h2>
+    <p class="muted mb-4 text-sm">After your password, you enter a 6-digit code from an authenticator app.</p>
+    {% if has_device %}
+      <p class="text-sm">An authenticator app is enrolled{% if otp_required %} and required for your role{% endif %}.</p>
+      <details class="mt-4">
+        <summary class="cursor-pointer text-sm font-medium text-rose-700 dark:text-rose-300">Replace authenticator (signs you out)</summary>
+        <form method="post" action="{% url 'accounts:account_two_step' %}" class="mt-4 max-w-sm" novalidate>
+          {% csrf_token %}<input type="hidden" name="action" value="reset_2fa">
+          {% include "partials/form_fields.html" with form=reset_form %}
+          <button type="submit" class="btn btn-secondary mt-4">Remove authenticator and sign out</button>
+        </form>
+      </details>
+    {% else %}
+      <p class="text-sm">No authenticator app is enrolled.</p>
+      {% url 'accounts:account_two_step' as two_step_url %}
+      <a href="{% url 'accounts:otp_setup' %}?next={{ two_step_url|urlencode }}" class="btn btn-primary mt-4">Set up two-factor authentication</a>
+    {% endif %}
+  </section>
+{% endblock %}

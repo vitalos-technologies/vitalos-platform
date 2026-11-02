@@ -1,51 +1,45 @@
-{% extends "base.html" %}
+{% extends "partials/settings_layout.html" %}
 {% load ui %}
 {% block title %}Settings · Vitalos Super Admin{% endblock %}
-{% block content %}
-  <h1 class="text-2xl font-semibold">Settings</h1>
-  {# Two columns from lg: a sticky section menu (real links, one URL per section) and the panel. Below lg (phones, and tablets where the sidebar takes 16rem) the menu is a horizontal, scrollable row above the panel. The whole region swaps on HTMX navigation so aria-current follows. #}
-  <div id="settings-region" class="settings-layout mt-4" hx-get="{{ request.path }}" hx-trigger="vsa-changed from:body" hx-select="#settings-region" hx-target="this" hx-swap="outerHTML">
-    <nav aria-label="Settings sections" class="settings-menu" data-testid="settings-menu">
-      {% if is_superadmin %}
-        <div class="settings-menu-group" role="group" aria-labelledby="settings-group-organisation">
-          <p class="settings-menu-label" id="settings-group-organisation">Organisation</p>
-          <ul class="settings-menu-list">
-            <li><a class="settings-link" href="{% url 'architecture:settings_company' %}" {% if tab == 'company' %}aria-current="page"{% endif %} hx-get="{% url 'architecture:settings_company' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="company">{% icon "briefcase" "h-4 w-4 shrink-0" %}<span>Company profile</span></a></li>
-            <li><a class="settings-link" href="{% url 'accounts:settings_users' %}" {% if tab == 'users' %}aria-current="page"{% endif %} hx-get="{% url 'accounts:settings_users' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="users">{% icon "users" "h-4 w-4 shrink-0" %}<span>Users &amp; roles</span></a></li>
-          </ul>
-        </div>
-      {% endif %}
-      {% if is_superadmin or can_enquiries %}
-        <div class="settings-menu-group" role="group" aria-labelledby="settings-group-communication">
-          <p class="settings-menu-label" id="settings-group-communication">Communication</p>
-          <ul class="settings-menu-list">
-            {% if is_superadmin %}
-              <li><a class="settings-link" href="{% url 'enquiries_settings:email' %}" {% if tab == 'email' %}aria-current="page"{% endif %} data-settings-section="email">{% icon "mail" "h-4 w-4 shrink-0" %}<span>Email</span></a></li>
-            {% endif %}
-            {% if can_enquiries %}
-              <li><a class="settings-link" href="{% url 'enquiries_settings:notifications' %}" {% if tab == 'notifications' %}aria-current="page"{% endif %} data-settings-section="notifications">{% icon "bell" "h-4 w-4 shrink-0" %}<span>Notifications</span></a></li>
-            {% endif %}
-          </ul>
-        </div>
-      {% endif %}
-      {% if is_superadmin %}
-        <div class="settings-menu-group" role="group" aria-labelledby="settings-group-website">
-          <p class="settings-menu-label" id="settings-group-website">Website</p>
-          <ul class="settings-menu-list">
-            <li><a class="settings-link" href="{% url 'content_settings:site' %}" {% if tab == 'content' %}aria-current="page"{% endif %} data-settings-section="content">{% icon "globe" "h-4 w-4 shrink-0" %}<span>Website content</span></a></li>
-          </ul>
-        </div>
-      {% endif %}
-      <div class="settings-menu-group" role="group" aria-labelledby="settings-group-developer">
-        <p class="settings-menu-label" id="settings-group-developer">Developer</p>
-        <ul class="settings-menu-list">
-          <li><a class="settings-link" href="{% url 'accounts:settings_tokens' %}" {% if tab == 'tokens' %}aria-current="page"{% endif %} hx-get="{% url 'accounts:settings_tokens' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="tokens">{% icon "key" "h-4 w-4 shrink-0" %}<span>API tokens</span></a></li>
-          <li><a class="settings-link" href="{% url 'architecture:settings_data' %}" {% if tab == 'data' %}aria-current="page"{% endif %} hx-get="{% url 'architecture:settings_data' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="data">{% icon "download" "h-4 w-4 shrink-0" %}<span>CSV import / export</span></a></li>
-        </ul>
-      </div>
-    </nav>
-    <div class="min-w-0" data-testid="settings-panel">
-      {% block settings_panel %}{% endblock %}
+{# The layout is shared with Account & security (partials/settings_layout.html). Here the whole region swaps on HTMX navigation, so aria-current follows. #}
+{% block shell_heading %}<h1 class="text-2xl font-semibold">Settings</h1>{% endblock %}
+{% block shell_region_attrs %} hx-get="{{ request.path }}" hx-trigger="vsa-changed from:body" hx-select="#settings-region" hx-target="this" hx-swap="outerHTML"{% endblock %}
+{% block shell_menu %}
+  {% if is_superadmin %}
+    <div class="settings-menu-group" role="group" aria-labelledby="settings-group-organisation">
+      <p class="settings-menu-label" id="settings-group-organisation">Organisation</p>
+      <ul class="settings-menu-list">
+        <li><a class="settings-link" href="{% url 'architecture:settings_company' %}" {% if tab == 'company' %}aria-current="page"{% endif %} hx-get="{% url 'architecture:settings_company' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="company">{% icon "briefcase" "h-4 w-4 shrink-0" %}<span>Company profile</span></a></li>
+        <li><a class="settings-link" href="{% url 'accounts:settings_users' %}" {% if tab == 'users' %}aria-current="page"{% endif %} hx-get="{% url 'accounts:settings_users' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="users">{% icon "users" "h-4 w-4 shrink-0" %}<span>Users &amp; roles</span></a></li>
+      </ul>
     </div>
+  {% endif %}
+  {% if is_superadmin or can_enquiries %}
+    <div class="settings-menu-group" role="group" aria-labelledby="settings-group-communication">
+      <p class="settings-menu-label" id="settings-group-communication">Communication</p>
+      <ul class="settings-menu-list">
+        {% if is_superadmin %}
+          <li><a class="settings-link" href="{% url 'enquiries_settings:email' %}" {% if tab == 'email' %}aria-current="page"{% endif %} data-settings-section="email">{% icon "mail" "h-4 w-4 shrink-0" %}<span>Email</span></a></li>
+        {% endif %}
+        {% if can_enquiries %}
+          <li><a class="settings-link" href="{% url 'enquiries_settings:notifications' %}" {% if tab == 'notifications' %}aria-current="page"{% endif %} data-settings-section="notifications">{% icon "bell" "h-4 w-4 shrink-0" %}<span>Notifications</span></a></li>
+        {% endif %}
+      </ul>
+    </div>
+  {% endif %}
+  {% if is_superadmin %}
+    <div class="settings-menu-group" role="group" aria-labelledby="settings-group-website">
+      <p class="settings-menu-label" id="settings-group-website">Website</p>
+      <ul class="settings-menu-list">
+        <li><a class="settings-link" href="{% url 'content_settings:site' %}" {% if tab == 'content' %}aria-current="page"{% endif %} data-settings-section="content">{% icon "globe" "h-4 w-4 shrink-0" %}<span>Website content</span></a></li>
+      </ul>
+    </div>
+  {% endif %}
+  <div class="settings-menu-group" role="group" aria-labelledby="settings-group-developer">
+    <p class="settings-menu-label" id="settings-group-developer">Developer</p>
+    <ul class="settings-menu-list">
+      <li><a class="settings-link" href="{% url 'accounts:settings_tokens' %}" {% if tab == 'tokens' %}aria-current="page"{% endif %} hx-get="{% url 'accounts:settings_tokens' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="tokens">{% icon "key" "h-4 w-4 shrink-0" %}<span>API tokens</span></a></li>
+      <li><a class="settings-link" href="{% url 'architecture:settings_data' %}" {% if tab == 'data' %}aria-current="page"{% endif %} hx-get="{% url 'architecture:settings_data' %}" hx-select="#settings-region" hx-target="#settings-region" hx-swap="outerHTML" hx-push-url="true" data-settings-section="data">{% icon "download" "h-4 w-4 shrink-0" %}<span>CSV import / export</span></a></li>
+    </ul>
   </div>
 {% endblock %}
