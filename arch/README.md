@@ -38,7 +38,7 @@ These views follow the code. Where older documents disagree, the code wins:
 
 ## Viewing the page
 
-Open `index.html` in a browser. It is a single file with no build step. Diagrams render with Mermaid 11.4.1 from jsDelivr; offline, each figure falls back to its Mermaid source. Use **Theme** to switch between light and dark, **Expand** to open a diagram full screen with zoom, and **Source** to see the Mermaid text.
+Open `index.html` in a browser. It is a single file with no build step. Every diagram is pre-rendered into the page in light and dark versions, so it works offline and in app file viewers; a diagram edited without re-baking renders live from jsDelivr (`mermaid@11.4.1`) instead. Use **Theme** to switch between light and dark, **Expand** to open a diagram full screen with zoom, and **Source** to see the Mermaid text. After editing a Mermaid diagram, re-bake the page with the Vitalos archkit bake script so it keeps working offline.
 
 ## Updating
 
