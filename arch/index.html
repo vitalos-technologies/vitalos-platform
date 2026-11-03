@@ -1,0 +1,3057 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vitalos platform architecture</title>
+    <meta
+      name="description"
+      content="Architecture of the Vitalos platform: the vitalos.co.uk website and the Super Admin and client portal. System context, containers, data model, deployment, key flows and security."
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f9fc;
+        --surface: #ffffff;
+        --surface-2: #eef2f7;
+        --text: #081a2a;
+        --muted: #536273;
+        --border: #d9e1e8;
+        --accent: #2457ff;
+        --accent-2: #007e76;
+        --accent-soft: #eef2ff;
+        --ok: #18794e;
+        --warn: #9a6700;
+        --bad: #c9372c;
+        --edge: #536273;
+        --boundary: #8a99a8;
+        --halo: #ffffff;
+        --n-person-bg: #081a2a;
+        --n-person-line: #081a2a;
+        --n-person-fg: #ffffff;
+        --n-web-bg: #eef2ff;
+        --n-web-line: #2457ff;
+        --n-svc-bg: #e6f4f2;
+        --n-svc-line: #007e76;
+        --n-db-bg: #fff6e0;
+        --n-db-line: #9a6700;
+        --n-ext-bg: #f1f3f5;
+        --n-ext-line: #536273;
+        --n-infra-bg: #f4ecff;
+        --n-infra-line: #7a3fd1;
+        --n-sec-bg: #fdecea;
+        --n-sec-line: #c9372c;
+        --shadow: 0 8px 24px rgb(8 26 42 / 0.08);
+        --radius: 14px;
+        --font:
+          ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+          sans-serif;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          color-scheme: dark;
+          --bg: #0b1622;
+          --surface: #112131;
+          --surface-2: #173247;
+          --text: #e8eef5;
+          --muted: #9fb0c2;
+          --border: #24384c;
+          --accent: #8aa4ff;
+          --accent-2: #3cc3b8;
+          --accent-soft: #16244f;
+          --ok: #4cc38a;
+          --warn: #e0b44a;
+          --bad: #ff8a80;
+          --edge: #9fb0c2;
+          --boundary: #5d7186;
+          --halo: #112131;
+          --n-person-bg: #e8eef5;
+          --n-person-line: #e8eef5;
+          --n-person-fg: #081a2a;
+          --n-web-bg: #16244f;
+          --n-web-line: #8aa4ff;
+          --n-svc-bg: #0f3532;
+          --n-svc-line: #3cc3b8;
+          --n-db-bg: #3a2c0b;
+          --n-db-line: #e0b44a;
+          --n-ext-bg: #1b2836;
+          --n-ext-line: #9fb0c2;
+          --n-infra-bg: #2a1d46;
+          --n-infra-line: #b48cff;
+          --n-sec-bg: #3d1714;
+          --n-sec-line: #ff8a80;
+          --shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #0b1622;
+        --surface: #112131;
+        --surface-2: #173247;
+        --text: #e8eef5;
+        --muted: #9fb0c2;
+        --border: #24384c;
+        --accent: #8aa4ff;
+        --accent-2: #3cc3b8;
+        --accent-soft: #16244f;
+        --ok: #4cc38a;
+        --warn: #e0b44a;
+        --bad: #ff8a80;
+        --edge: #9fb0c2;
+        --boundary: #5d7186;
+        --halo: #112131;
+        --n-person-bg: #e8eef5;
+        --n-person-line: #e8eef5;
+        --n-person-fg: #081a2a;
+        --n-web-bg: #16244f;
+        --n-web-line: #8aa4ff;
+        --n-svc-bg: #0f3532;
+        --n-svc-line: #3cc3b8;
+        --n-db-bg: #3a2c0b;
+        --n-db-line: #e0b44a;
+        --n-ext-bg: #1b2836;
+        --n-ext-line: #9fb0c2;
+        --n-infra-bg: #2a1d46;
+        --n-infra-line: #b48cff;
+        --n-sec-bg: #3d1714;
+        --n-sec-line: #ff8a80;
+        --shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 64px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.55 var(--font);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent);
+      }
+      code,
+      kbd {
+        font-family: var(--mono);
+        font-size: 0.9em;
+        background: var(--surface-2);
+        padding: 0.1em 0.35em;
+        border-radius: 5px;
+        overflow-wrap: anywhere;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 0 16px;
+      }
+      @media (min-width: 720px) {
+        .wrap {
+          padding: 0 28px;
+        }
+      }
+
+      /* Hero */
+      .hero {
+        background: linear-gradient(135deg, var(--surface) 0%, var(--accent-soft) 100%);
+        border-bottom: 1px solid var(--border);
+        padding: 40px 0 28px;
+      }
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(30px, 5vw, 46px);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+      .lede {
+        margin: 0 0 18px;
+        max-width: 760px;
+        font-size: 18px;
+        color: var(--muted);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .chip {
+        font-size: 13px;
+        padding: 4px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--text);
+        white-space: nowrap;
+      }
+      .chip b {
+        color: var(--muted);
+        font-weight: 600;
+        margin-right: 4px;
+      }
+      .icon-btn {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font: 600 13px var(--font);
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 12px;
+        cursor: pointer;
+        min-height: 40px;
+      }
+      .icon-btn:hover {
+        border-color: var(--accent);
+      }
+      .icon-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* Section nav */
+      .tabs {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+      }
+      .tabs ul {
+        display: flex;
+        gap: 4px;
+        margin: 0 auto;
+        padding: 8px 16px;
+        list-style: none;
+        overflow-x: auto;
+        max-width: 1180px;
+        scrollbar-width: thin;
+      }
+      .tabs a {
+        display: block;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .tabs a:hover {
+        color: var(--text);
+        background: var(--surface-2);
+      }
+      .tabs a.active {
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      /* Sections */
+      section {
+        padding: 36px 0 8px;
+      }
+      section > h2 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        letter-spacing: -0.01em;
+      }
+      section > .sub {
+        margin: 0 0 20px;
+        color: var(--muted);
+        max-width: 820px;
+      }
+      h3 {
+        margin: 26px 0 10px;
+        font-size: 18px;
+      }
+      p {
+        max-width: 860px;
+      }
+
+      /* Stat tiles */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin: 0 0 20px;
+      }
+      .stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+      }
+      .stat .n {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .stat .l {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* Cards */
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 860px) {
+        .grid-2 {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      @media (min-width: 720px) {
+        .grid-3 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (min-width: 1040px) {
+        .grid-3 {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+      }
+      .card h4 {
+        margin: 0 0 6px;
+        font-size: 15px;
+      }
+      .card p,
+      .card ul {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .card ul {
+        padding-left: 18px;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .tag.web {
+        color: var(--n-web-line);
+        border-color: var(--n-web-line);
+      }
+      .tag.svc {
+        color: var(--n-svc-line);
+        border-color: var(--n-svc-line);
+      }
+      .tag.db {
+        color: var(--n-db-line);
+        border-color: var(--n-db-line);
+      }
+      .tag.ext {
+        color: var(--n-ext-line);
+        border-color: var(--n-ext-line);
+      }
+      .tag.infra {
+        color: var(--n-infra-line);
+        border-color: var(--n-infra-line);
+      }
+      .tag.sec {
+        color: var(--n-sec-line);
+        border-color: var(--n-sec-line);
+      }
+      .callout {
+        border-left: 4px solid var(--accent);
+        background: var(--surface);
+        border-radius: 0 var(--radius) var(--radius) 0;
+        padding: 12px 16px;
+        margin: 16px 0;
+        font-size: 15px;
+      }
+      .callout.warn {
+        border-left-color: var(--warn);
+      }
+
+      /* Diagram figures */
+      figure.diagram {
+        margin: 0 0 18px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      figure.diagram > header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      figure.diagram > header h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+      figure.diagram > header .tools {
+        display: flex;
+        gap: 6px;
+        flex: none;
+      }
+      figure.diagram > header .tools button {
+        font: 600 12px var(--font);
+        color: var(--muted);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+        min-height: 32px;
+      }
+      figure.diagram > header .tools button:hover {
+        color: var(--text);
+        border-color: var(--accent);
+      }
+      .canvas {
+        padding: 16px;
+        overflow-x: auto;
+      }
+      .canvas > svg {
+        display: block;
+        margin: 0 auto;
+        height: auto;
+      }
+      .canvas > svg.arch {
+        width: 100%;
+        min-width: 760px;
+      }
+      .canvas.mmd > svg {
+        width: 100%;
+      }
+      figcaption {
+        padding: 0 16px 14px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      pre.mmd-src,
+      pre.mmd-fallback {
+        margin: 0;
+        padding: 14px 16px;
+        background: var(--surface-2);
+        color: var(--text);
+        font: 12.5px/1.5 var(--mono);
+        overflow-x: auto;
+        border-top: 1px solid var(--border);
+        white-space: pre;
+      }
+      pre.mmd-error {
+        margin: 0;
+        padding: 12px 16px;
+        color: var(--bad);
+        font: 12px var(--mono);
+        white-space: pre-wrap;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 0 16px 14px;
+        margin: 0;
+        list-style: none;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .legend li {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend i {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 2px solid;
+      }
+      .legend i.person {
+        background: var(--n-person-bg);
+        border-color: var(--n-person-line);
+      }
+      .legend i.web {
+        background: var(--n-web-bg);
+        border-color: var(--n-web-line);
+      }
+      .legend i.svc {
+        background: var(--n-svc-bg);
+        border-color: var(--n-svc-line);
+      }
+      .legend i.db {
+        background: var(--n-db-bg);
+        border-color: var(--n-db-line);
+      }
+      .legend i.ext {
+        background: var(--n-ext-bg);
+        border-color: var(--n-ext-line);
+        border-style: dashed;
+      }
+      .legend i.infra {
+        background: var(--n-infra-bg);
+        border-color: var(--n-infra-line);
+      }
+      .legend i.sec {
+        background: var(--n-sec-bg);
+        border-color: var(--n-sec-line);
+      }
+      .legend i.line {
+        width: 22px;
+        height: 0;
+        border-radius: 0;
+        border-width: 2px 0 0;
+        border-color: var(--edge);
+      }
+      .legend i.line.async {
+        border-style: dashed;
+      }
+
+      /* Hand-built SVG vocabulary (svg.arch) */
+      svg.arch {
+        font-family: var(--font);
+      }
+      svg.arch text {
+        fill: var(--text);
+      }
+      svg.arch .node rect,
+      svg.arch .node path,
+      svg.arch .node ellipse {
+        stroke-width: 2;
+      }
+      svg.arch .node .t {
+        font-size: 15px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+      svg.arch .node .s {
+        font-size: 12px;
+        fill: var(--muted);
+        text-anchor: middle;
+      }
+      svg.arch .node.person rect,
+      svg.arch .node.person circle {
+        fill: var(--n-person-bg);
+        stroke: var(--n-person-line);
+      }
+      svg.arch .node.person .t,
+      svg.arch .node.person .s {
+        fill: var(--n-person-fg);
+      }
+      svg.arch .node.web :is(rect, path, ellipse) {
+        fill: var(--n-web-bg);
+        stroke: var(--n-web-line);
+      }
+      svg.arch .node.svc :is(rect, path, ellipse) {
+        fill: var(--n-svc-bg);
+        stroke: var(--n-svc-line);
+      }
+      svg.arch .node.db :is(rect, path, ellipse) {
+        fill: var(--n-db-bg);
+        stroke: var(--n-db-line);
+      }
+      svg.arch .node.ext :is(rect, path, ellipse) {
+        fill: var(--n-ext-bg);
+        stroke: var(--n-ext-line);
+        stroke-dasharray: 5 4;
+      }
+      svg.arch .node.infra :is(rect, path, ellipse) {
+        fill: var(--n-infra-bg);
+        stroke: var(--n-infra-line);
+      }
+      svg.arch .node.sec :is(rect, path, ellipse) {
+        fill: var(--n-sec-bg);
+        stroke: var(--n-sec-line);
+      }
+      svg.arch .boundary rect {
+        fill: none;
+        stroke: var(--boundary);
+        stroke-width: 1.5;
+        stroke-dasharray: 7 5;
+      }
+      svg.arch .boundary.zone rect {
+        fill: var(--surface-2);
+        fill-opacity: 0.45;
+      }
+      svg.arch .boundary .bt {
+        font-size: 13px;
+        font-weight: 700;
+        fill: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      svg.arch .edge {
+        fill: none;
+        stroke: var(--edge);
+        stroke-width: 1.8;
+      }
+      svg.arch .edge.async {
+        stroke-dasharray: 6 5;
+      }
+      svg.arch .edge.hot {
+        stroke: var(--accent);
+        stroke-width: 2.2;
+      }
+      svg.arch .head {
+        fill: var(--edge);
+      }
+      svg.arch .head.hot {
+        fill: var(--accent);
+      }
+      svg.arch .el {
+        font-size: 12px;
+        fill: var(--muted);
+        paint-order: stroke;
+        stroke: var(--halo);
+        stroke-width: 5px;
+        stroke-linejoin: round;
+      }
+      svg.arch .badge rect {
+        fill: var(--accent);
+        stroke: none;
+      }
+      svg.arch .badge text {
+        fill: #ffffff;
+        font-size: 11px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+
+      /* Tables */
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        margin: 0 0 18px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        background: var(--surface-2);
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td code {
+        white-space: nowrap;
+      }
+
+      /* Zoom dialog */
+      dialog#zoom {
+        width: min(96vw, 1600px);
+        height: min(92vh, 1100px);
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--text);
+      }
+      dialog#zoom::backdrop {
+        background: rgb(8 26 42 / 0.6);
+      }
+      dialog#zoom .bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+      }
+      dialog#zoom .bar h3 {
+        margin: 0;
+        font-size: 15px;
+      }
+      dialog#zoom .bar div {
+        display: flex;
+        gap: 6px;
+      }
+      dialog#zoom .stage {
+        overflow: auto;
+        height: calc(100% - 58px);
+        padding: 16px;
+      }
+      dialog#zoom .stage svg {
+        display: block;
+        margin: 0 auto;
+        max-width: none !important;
+        height: auto;
+      }
+
+      footer {
+        margin-top: 40px;
+        padding: 26px 0 40px;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 14px;
+      }
+      footer ul {
+        padding-left: 18px;
+      }
+      @media (max-width: 560px) {
+        .hero-top {
+          flex-direction: column-reverse;
+        }
+        .lede {
+          font-size: 16px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+      @media print {
+        .tabs,
+        .tools,
+        #theme-toggle {
+          display: none !important;
+        }
+        figure.diagram {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow">Vitalos Technologies · Architecture</p>
+            <h1>Vitalos platform</h1>
+            <p class="lede">
+              The public website at vitalos.co.uk and the internal Super Admin and client portal, in
+              one monorepo. The website runs on Vercel with a Supabase database. The Super Admin is
+              a separate Django application on Google Cloud Run with its own database. The two share
+              no code or data and talk only through signed APIs.
+            </p>
+          </div>
+          <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch colour theme">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+            </svg>
+            <span>Theme</span>
+          </button>
+        </div>
+        <ul class="chips">
+          <li class="chip"><b>Stack</b>Next.js 16 · Django 6 · TypeScript and Python</li>
+          <li class="chip"><b>Hosting</b>Vercel · Google Cloud Run · Cloudflare</li>
+          <li class="chip"><b>Data</b>Two PostgreSQL databases · R2</li>
+          <li class="chip"><b>Status</b>Website live · Super Admin deploys to Cloud Run</li>
+          <li class="chip"><b>Repo</b>vitalos-technologies/vitalos-platform (public)</li>
+          <li class="chip"><b>Snapshot</b>3 Nov 2026 · <code>2096148</code></li>
+        </ul>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Sections">
+      <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#context">System context</a></li>
+        <li><a href="#containers">Containers</a></li>
+        <li><a href="#data">Data model</a></li>
+        <li><a href="#deployment">Deployment &amp; CI/CD</a></li>
+        <li><a href="#flows">Key flows</a></li>
+        <li><a href="#security">Security</a></li>
+        <li><a href="#decisions">Decisions &amp; risks</a></li>
+      </ul>
+    </nav>
+
+    <main class="wrap">
+      <section id="overview">
+        <h2>Overview</h2>
+        <p class="sub">
+          What the system is made of, at a glance. Counts come from the repository at commit
+          <code>2096148</code>.
+        </p>
+        <div class="stats">
+          <div class="stat">
+            <div class="n">2</div>
+            <div class="l">deployable apps: website and Super Admin</div>
+          </div>
+          <div class="stat">
+            <div class="n">45</div>
+            <div class="l">website page routes</div>
+          </div>
+          <div class="stat">
+            <div class="n">17</div>
+            <div class="l">website database tables</div>
+          </div>
+          <div class="stat">
+            <div class="n">102</div>
+            <div class="l">Super Admin models in 20 apps</div>
+          </div>
+          <div class="stat">
+            <div class="n">14</div>
+            <div class="l">shared <code>@vitalos/*</code> packages</div>
+          </div>
+          <div class="stat">
+            <div class="n">10</div>
+            <div class="l">GitHub Actions workflows</div>
+          </div>
+          <div class="stat">
+            <div class="n">49</div>
+            <div class="l">architecture decision records</div>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <span class="tag web">Front end</span>
+            <h4>Next.js 16 website</h4>
+            <p>
+              React 19 and Tailwind 4. Pages come from one route manifest; repo content is static
+              per deploy. The Relay widget loads its panel only when a visitor opens it.
+            </p>
+          </div>
+          <div class="card">
+            <span class="tag svc">Back end</span>
+            <h4>Route handlers and Django apps</h4>
+            <p>
+              Server actions and route handlers with zod and ports and adapters on the website; 20
+              Django apps in the Super Admin, from enquiries to the client portal.
+            </p>
+          </div>
+          <div class="card">
+            <span class="tag db">Data</span>
+            <h4>Two PostgreSQL databases</h4>
+            <p>
+              Supabase for the website (RLS, pgvector, pg_cron) and a separate Super Admin database.
+              Files live in Cloudflare R2.
+            </p>
+          </div>
+          <div class="card">
+            <span class="tag infra">Platform</span>
+            <h4>Vercel, Cloud Run, Cloudflare</h4>
+            <p>
+              Vercel in <code>dub1</code>, Cloud Run in <code>europe-west2</code> scaled 0 to 1,
+              Cloudflare for DNS, Workers and R2. GitHub-hosted runners only.
+            </p>
+          </div>
+          <div class="card">
+            <span class="tag ext">AI</span>
+            <h4>Two model paths</h4>
+            <p>
+              Relay uses DeepSeek behind a swappable interface with redaction first. AI &amp; Data
+              uses Anthropic through the <code>aicore</code> gateway with a kill switch and caps.
+            </p>
+          </div>
+          <div class="card">
+            <span class="tag sec">Security</span>
+            <h4>Signed, scoped, scanned</h4>
+            <p>
+              HMAC-signed APIs between the apps, TOTP for staff, OIDC deploys with no stored cloud
+              keys, CSP, gitleaks, CodeQL and a client-bundle secret scan.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="context">
+        <h2>System context</h2>
+        <p class="sub">
+          Who uses the platform and which outside systems it depends on (C4 level 1).
+        </p>
+        <figure class="diagram" data-title="System context">
+          <header>
+            <h3>System context</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="context">
+            flowchart LR
+              visitor(["Visitors and prospects"]):::person
+              client(["Client users"]):::person
+              staff(["Vitalos staff"]):::person
+              editor(["Editors and engineers"]):::person
+
+              github["GitHub<br/>source, Actions, ghcr.io"]:::infra
+              cloudflare["Cloudflare<br/>DNS, edge Worker, Turnstile, R2"]:::ext
+              web["Website<br/>vitalos.co.uk"]:::web
+              admin["Super Admin and client portal<br/>admin and portal hosts"]:::web
+
+              supabase["Supabase<br/>website database"]:::ext
+              deepseek["DeepSeek<br/>Relay answers, redacted"]:::ext
+              email["Resend or Postmark<br/>email delivery"]:::ext
+              anthropic["Anthropic<br/>AI and Data, capped gateway"]:::ext
+              stripe["Stripe<br/>invoices and payments"]:::ext
+              mailbox["Outreach mailbox<br/>Microsoft Graph or SMTP"]:::ext
+              products["Vitalos products<br/>Askbridge, Answerd, Workforce,<br/>TipSignal, Pitline"]:::ext
+
+              visitor -- "HTTPS" --> web
+              client -- "HTTPS" --> cloudflare
+              staff -- "password and TOTP" --> cloudflare
+              cloudflare -- "edge Worker" --> admin
+              editor -- "pull requests" --> github
+              github -- "deploy" --> web
+              github -- "deploy" --> admin
+              web <-->|"signed APIs"| admin
+              web --> supabase
+              web --> deepseek
+              web --> email
+              web -. "Askbridge widget when enabled" .-> products
+              admin --> email
+              admin --> anthropic
+              admin --> stripe
+              admin --> mailbox
+              admin -- "status reads" --> products
+            classDef person fill:#081a2a,stroke:#081a2a,color:#ffffff
+            classDef web fill:#dce4ff,stroke:#2457ff,color:#081a2a
+            classDef ext fill:#f1f3f5,stroke:#536273,color:#26333f,stroke-dasharray:4 3
+            classDef infra fill:#f4ecff,stroke:#7a3fd1,color:#081a2a
+          </script>
+          <figcaption>
+            The website and the Super Admin are separate deployables. Every call between them is
+            signed. The Super Admin reads status from the other Vitalos products with a Bearer token
+            and links staff to their own admins through an audited redirect (ADR-044). With the
+            Askbridge site key set, the website loads the Askbridge widget instead of Relay
+            (ADR-045).
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="containers">
+        <h2>Containers</h2>
+        <p class="sub">The deployable parts, the stores they own and how they talk (C4 level 2).</p>
+        <figure class="diagram" data-title="Container view">
+          <header>
+            <h3>Container view</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas">
+            <svg class="arch" viewBox="0 0 1400 960" role="img" aria-labelledby="c-title c-desc">
+              <title id="c-title">Vitalos platform container view</title>
+              <desc id="c-desc">
+                Visitors reach the website on Vercel, which uses a Supabase database, an embedding
+                Edge Function, DeepSeek and an email provider. Staff and client users reach the
+                Super Admin on Google Cloud Run through a Cloudflare edge Worker. The Super Admin
+                has its own PostgreSQL database, stores files in Cloudflare R2 and calls Anthropic,
+                Stripe, an outreach mailbox, the email provider and other Vitalos products. The
+                website and the Super Admin talk through signed APIs. A Cloudflare Worker triggers
+                the content tick every minute.
+              </desc>
+              <defs>
+                <marker
+                  id="c-arr"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto-start-reverse"
+                >
+                  <path class="head" d="M0 0 L10 5 L0 10 z" />
+                </marker>
+                <marker
+                  id="c-arr-hot"
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="8"
+                  markerHeight="8"
+                  orient="auto-start-reverse"
+                >
+                  <path class="head hot" d="M0 0 L10 5 L0 10 z" />
+                </marker>
+              </defs>
+
+              <!-- Zones -->
+              <g class="boundary zone">
+                <rect x="220" y="60" width="360" height="300" rx="16" />
+                <text class="bt" x="240" y="86">Vercel · dub1</text>
+              </g>
+              <g class="boundary zone">
+                <rect x="620" y="60" width="340" height="300" rx="16" />
+                <text class="bt" x="640" y="86">Supabase · website project</text>
+              </g>
+              <g class="boundary zone">
+                <rect x="220" y="420" width="360" height="520" rx="16" />
+                <text class="bt" x="240" y="446">Cloudflare</text>
+              </g>
+              <g class="boundary zone">
+                <rect x="620" y="420" width="340" height="350" rx="16" />
+                <text class="bt" x="640" y="446">Google Cloud</text>
+              </g>
+              <g class="boundary zone">
+                <rect x="620" y="790" width="340" height="160" rx="16" />
+                <text class="bt" x="640" y="816">Admin database</text>
+              </g>
+
+              <!-- People -->
+              <g class="node person" transform="translate(20,124)">
+                <rect width="150" height="64" rx="32" />
+                <text class="t" x="75" y="29">Visitor</text>
+                <text class="s" x="75" y="47">browser or phone</text>
+              </g>
+              <g class="node person" transform="translate(20,520)">
+                <rect width="150" height="64" rx="32" />
+                <text class="t" x="75" y="29">Client users</text>
+                <text class="s" x="75" y="47">portal host</text>
+              </g>
+              <g class="node person" transform="translate(20,616)">
+                <rect width="150" height="64" rx="32" />
+                <text class="t" x="75" y="29">Staff</text>
+                <text class="s" x="75" y="47">admin host</text>
+              </g>
+
+              <!-- Website stack -->
+              <g class="node web" transform="translate(250,112)">
+                <rect width="300" height="88" rx="10" />
+                <text class="t" x="150" y="33">Website · apps/web</text>
+                <text class="s" x="150" y="53">Next.js 16 · pages and route handlers</text>
+                <text class="s" x="150" y="71">enquiries, content, Relay, AI &amp; Data</text>
+              </g>
+              <g class="node infra" transform="translate(370,250)">
+                <rect width="140" height="60" rx="10" />
+                <text class="t" x="70" y="27">Vercel Cron</text>
+                <text class="s" x="70" y="45">daily backstops</text>
+              </g>
+              <g class="node svc" transform="translate(650,100)">
+                <rect width="280" height="56" rx="10" />
+                <text class="t" x="140" y="24">relay-embed</text>
+                <text class="s" x="140" y="42">Edge Function · gte-small</text>
+              </g>
+              <g class="node db" transform="translate(650,170)">
+                <path d="M0 12 V76 A140 12 0 0 0 280 76 V12" />
+                <ellipse cx="140" cy="12" rx="140" ry="12" />
+                <text class="t" x="140" y="48">Postgres 17</text>
+                <text class="s" x="140" y="67">public and relay schemas, pgvector</text>
+              </g>
+              <g class="node svc" transform="translate(650,278)">
+                <rect width="280" height="60" rx="10" />
+                <text class="t" x="140" y="27">pg_cron and pg_net</text>
+                <text class="s" x="140" y="45">Relay reminders, digests, purge</text>
+              </g>
+
+              <!-- Cloudflare -->
+              <g class="node svc" transform="translate(250,466)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Content tick Worker</text>
+                <text class="s" x="150" y="47">cron, every minute</text>
+              </g>
+              <g class="node svc" transform="translate(250,556)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Edge Worker</text>
+                <text class="s" x="150" y="47">admin and portal hosts</text>
+              </g>
+              <g class="node svc" transform="translate(250,646)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Email Worker</text>
+                <text class="s" x="150" y="47">support@ inbound · prepared</text>
+              </g>
+              <g class="node db" transform="translate(250,740)">
+                <path d="M0 12 V64 A150 12 0 0 0 300 64 V12" />
+                <ellipse cx="150" cy="12" rx="150" ry="12" />
+                <text class="t" x="150" y="44">R2 object storage</text>
+                <text class="s" x="150" y="62">attachments, CVs, portal files</text>
+              </g>
+              <g class="node sec" transform="translate(250,846)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Turnstile</text>
+                <text class="s" x="150" y="47">bot checks on public forms</text>
+              </g>
+
+              <!-- Google Cloud and admin database -->
+              <g class="node web" transform="translate(650,556)">
+                <rect width="280" height="84" rx="10" />
+                <text class="t" x="140" y="32">Super Admin and portal</text>
+                <text class="s" x="140" y="52">Django 6 · Cloud Run, europe-west2</text>
+                <text class="s" x="140" y="69">0 to 1 instances</text>
+              </g>
+              <g class="node svc" transform="translate(820,672)">
+                <rect width="110" height="56" rx="10" />
+                <text class="t" x="55" y="25">Release job</text>
+                <text class="s" x="55" y="43">migrations</text>
+              </g>
+              <g class="node db" transform="translate(650,832)">
+                <path d="M0 12 V74 A140 12 0 0 0 280 74 V12" />
+                <ellipse cx="140" cy="12" rx="140" ry="12" />
+                <text class="t" x="140" y="48">Super Admin Postgres</text>
+                <text class="s" x="140" y="67">Supabase or Neon, separate</text>
+              </g>
+
+              <!-- External providers -->
+              <g class="node ext" transform="translate(1080,70)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">DeepSeek</text>
+                <text class="s" x="150" y="47">Relay answers, redacted input</text>
+              </g>
+              <g class="node ext" transform="translate(1080,160)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Resend or Postmark</text>
+                <text class="s" x="150" y="47">transactional email</text>
+              </g>
+              <g class="node ext" transform="translate(1080,450)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Anthropic</text>
+                <text class="s" x="150" y="47">AI &amp; Data, through the aicore gateway</text>
+              </g>
+              <g class="node ext" transform="translate(1080,540)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Stripe</text>
+                <text class="s" x="150" y="47">invoices, payment links, webhooks</text>
+              </g>
+              <g class="node ext" transform="translate(1080,630)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Outreach mailbox</text>
+                <text class="s" x="150" y="47">Microsoft Graph or SMTP</text>
+              </g>
+              <g class="node ext" transform="translate(1080,720)">
+                <rect width="300" height="64" rx="10" />
+                <text class="t" x="150" y="28">Vitalos products</text>
+                <text class="s" x="150" y="47">status APIs: Askbridge, Pitline and more</text>
+              </g>
+
+              <!-- Edges: people -->
+              <path class="edge hot" d="M170 156 H248" marker-end="url(#c-arr-hot)" />
+              <text class="el" x="186" y="149">HTTPS</text>
+              <path class="edge" d="M170 552 C210 552 210 576 248 576" marker-end="url(#c-arr)" />
+              <path class="edge" d="M170 648 C210 648 210 600 248 600" marker-end="url(#c-arr)" />
+
+              <!-- Edges: website stack -->
+              <path class="edge" d="M552 128 H648" marker-end="url(#c-arr)" />
+              <text class="el" x="600" y="121" text-anchor="middle">embed</text>
+              <path class="edge hot" d="M552 188 H648" marker-end="url(#c-arr-hot)" />
+              <text class="el" x="600" y="181" text-anchor="middle">SQL RPC</text>
+              <path class="edge" d="M440 250 V202" marker-end="url(#c-arr)" />
+              <path class="edge" d="M420 110 V28 H1066 V102 H1078" marker-end="url(#c-arr)" />
+              <text class="el" x="700" y="23">Relay answers</text>
+              <path class="edge async" d="M480 110 V48 H1048 V184 H1078" marker-end="url(#c-arr)" />
+              <text class="el" x="820" y="43">notification email</text>
+
+              <!-- Edges: between the bands -->
+              <path class="edge" d="M345 464 V202" marker-end="url(#c-arr)" />
+              <text class="el" x="337" y="410" text-anchor="end">tick, every minute</text>
+              <path
+                class="edge hot"
+                d="M525 202 V392 H790 V554"
+                marker-start="url(#c-arr-hot)"
+                marker-end="url(#c-arr-hot)"
+              />
+              <text class="el" x="540" y="386">signed APIs, both ways</text>
+
+              <!-- Edges: Super Admin -->
+              <path class="edge" d="M552 588 H648" marker-end="url(#c-arr)" />
+              <text class="el" x="600" y="581" text-anchor="middle">proxied</text>
+              <path
+                class="edge async"
+                d="M552 678 C600 678 600 626 648 626"
+                marker-end="url(#c-arr)"
+              />
+              <text class="el" x="560" y="700">signed POST</text>
+              <path class="edge" d="M670 642 V778 H552" marker-end="url(#c-arr)" />
+              <text class="el" x="678" y="718">presigned URLs</text>
+              <path class="edge" d="M790 642 V828" marker-end="url(#c-arr)" />
+              <text class="el" x="798" y="784">SQL</text>
+              <path class="edge" d="M875 730 V830" marker-end="url(#c-arr)" />
+              <text class="el" x="883" y="784">migrate</text>
+              <path
+                class="edge async"
+                d="M910 554 V404 H1060 V210 H1078"
+                marker-end="url(#c-arr)"
+              />
+              <text class="el" x="960" y="398">mail</text>
+              <path
+                class="edge"
+                d="M932 572 C1005 572 1005 482 1078 482"
+                marker-end="url(#c-arr)"
+              />
+              <path
+                class="edge"
+                d="M932 590 C1005 590 1005 572 1078 572"
+                marker-end="url(#c-arr)"
+              />
+              <path
+                class="edge async"
+                d="M932 608 C1005 608 1005 662 1078 662"
+                marker-end="url(#c-arr)"
+              />
+              <path
+                class="edge"
+                d="M932 626 C1005 626 1005 752 1078 752"
+                marker-end="url(#c-arr)"
+              />
+
+              <!-- Badges -->
+              <g class="badge" transform="translate(539,101)">
+                <rect width="22" height="22" rx="11" />
+                <text x="11" y="15">1</text>
+              </g>
+              <g class="badge" transform="translate(700,381)">
+                <rect width="22" height="22" rx="11" />
+                <text x="11" y="15">2</text>
+              </g>
+              <g class="badge" transform="translate(539,545)">
+                <rect width="22" height="22" rx="11" />
+                <text x="11" y="15">3</text>
+              </g>
+              <g class="badge" transform="translate(539,635)">
+                <rect width="22" height="22" rx="11" />
+                <text x="11" y="15">4</text>
+              </g>
+              <g class="badge" transform="translate(1069,439)">
+                <rect width="22" height="22" rx="11" />
+                <text x="11" y="15">5</text>
+              </g>
+              <g class="badge" transform="translate(919,821)">
+                <rect width="22" height="22" rx="11" />
+                <text x="11" y="15">6</text>
+              </g>
+            </svg>
+          </div>
+          <ul class="legend">
+            <li><i class="person"></i>Person</li>
+            <li><i class="web"></i>Application</li>
+            <li><i class="svc"></i>Service, function or worker</li>
+            <li><i class="db"></i>Data store</li>
+            <li><i class="ext"></i>External provider</li>
+            <li><i class="infra"></i>Platform scheduler</li>
+            <li><i class="sec"></i>Security control</li>
+            <li><i class="line"></i>Sync call</li>
+            <li><i class="line async"></i>Async, queued or prepared</li>
+          </ul>
+          <figcaption>
+            What to notice:
+            <ol>
+              <li>
+                Repo content is static per deploy. Insights and Careers come from the Super Admin's
+                content API and are cached for 10 minutes.
+              </li>
+              <li>
+                Every call between the two apps is HMAC-signed with per-scope key lists and a
+                300-second window: content reads and revalidation, careers, brief assist, the Relay
+                admin API and the Relay webhook.
+              </li>
+              <li>
+                Staff and client users reach Cloud Run only through the Cloudflare edge Worker. The
+                admin and portal hosts use separate URL sets and host-only cookies.
+              </li>
+              <li>
+                The Email Worker is prepared but not deployed. Turning on inbound mail is an owner
+                step.
+              </li>
+              <li>
+                Every model call goes through the <code>aicore</code> gateway: kill switch, per-run,
+                daily and monthly caps, schema validation and metering.
+              </li>
+              <li>
+                The Super Admin database is separate from the website's and is dumped nightly,
+                encrypted, to a private bucket.
+              </li>
+            </ol>
+          </figcaption>
+        </figure>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Container</th>
+                <th>Technology</th>
+                <th>Responsibility</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Website</td>
+                <td>Next.js 16, React 19, Tailwind 4, zod</td>
+                <td>
+                  45 page routes; enquiries and careers applications; Insights and Careers reads;
+                  Relay API; AI &amp; Data brief; SEO, redirects and publication gates.
+                </td>
+                <td><code>apps/web</code></td>
+              </tr>
+              <tr>
+                <td>Vercel Cron</td>
+                <td>Vercel scheduled functions</td>
+                <td>Daily backstops: outbox dispatch, enquiry retention purge, content tick.</td>
+                <td><code>apps/web/vercel.json</code></td>
+              </tr>
+              <tr>
+                <td>Website database</td>
+                <td>Supabase PostgreSQL 17, pgvector, citext</td>
+                <td>
+                  Enquiries, outbox and rate limits; Relay conversations, knowledge and usage.
+                </td>
+                <td><code>supabase/migrations</code></td>
+              </tr>
+              <tr>
+                <td>relay-embed</td>
+                <td>Supabase Edge Function, gte-small</td>
+                <td>Embeddings for knowledge chunks and visitor questions.</td>
+                <td><code>supabase/functions</code></td>
+              </tr>
+              <tr>
+                <td>pg_cron and pg_net</td>
+                <td>PostgreSQL extensions</td>
+                <td>
+                  Relay reminders, digests and FAQ sync through the website's Relay cron routes;
+                  nightly Relay purge in the database.
+                </td>
+                <td><code>supabase/migrations</code></td>
+              </tr>
+              <tr>
+                <td>Super Admin and portal</td>
+                <td>Django 6, gunicorn, django-otp, django-axes, DRF</td>
+                <td>
+                  Company architecture, enquiries and mail, Relay inbox, Insights, Careers, AI &amp;
+                  Data, billing, outreach, client portal.
+                </td>
+                <td><code>superadmin/</code></td>
+              </tr>
+              <tr>
+                <td>Release job</td>
+                <td>Cloud Run job</td>
+                <td>Migrations and release steps before each revision.</td>
+                <td><code>superadmin/deploy/gcp</code></td>
+              </tr>
+              <tr>
+                <td>Super Admin database</td>
+                <td>PostgreSQL, Supabase or Neon free plan</td>
+                <td>102 models; never shared with the website.</td>
+                <td><code>superadmin/apps</code></td>
+              </tr>
+              <tr>
+                <td>Edge Worker</td>
+                <td>Cloudflare Worker, managed outside this repository</td>
+                <td>
+                  Carries the admin and portal hosts to Cloud Run with a shared-secret header.
+                </td>
+                <td><code>superadmin/docs/DEPLOY.md</code></td>
+              </tr>
+              <tr>
+                <td>Content tick Worker</td>
+                <td>Cloudflare Worker cron</td>
+                <td>
+                  Calls the website tick route every minute; the Super Admin is woken only when work
+                  is due.
+                </td>
+                <td><code>infra/cloudflare-content-tick</code></td>
+              </tr>
+              <tr>
+                <td>Email Worker</td>
+                <td>Cloudflare Email Worker, prepared</td>
+                <td>
+                  Forwards <code>support@</code> mail and posts the signed raw message to the Super
+                  Admin.
+                </td>
+                <td><code>infra/cloudflare-email-worker</code></td>
+              </tr>
+              <tr>
+                <td>Shared packages</td>
+                <td>TypeScript, public entrypoints only</td>
+                <td>
+                  Design tokens, UI, content model, config, security, observability, Relay core,
+                  knowledge and widget, email layout.
+                </td>
+                <td><code>packages/*</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="data">
+        <h2>Data model</h2>
+        <p class="sub">
+          Two databases with one owner each, taken from the SQL migrations and the Django models.
+          Diagrams show keys and the most meaningful columns only.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Store</th>
+                <th>Owner</th>
+                <th>Holds</th>
+                <th>Defined in</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Website PostgreSQL</td>
+                <td>Website server code</td>
+                <td>17 tables: 3 in <code>public</code>, 14 in <code>relay</code></td>
+                <td>8 SQL migrations, pgTAP tests</td>
+              </tr>
+              <tr>
+                <td>Super Admin PostgreSQL</td>
+                <td>Super Admin</td>
+                <td>102 models in 17 apps, plus history tables</td>
+                <td>42 Django migrations</td>
+              </tr>
+              <tr>
+                <td>Repository</td>
+                <td>Editors, through pull requests</td>
+                <td>Editorial content for the public site (ADR-028)</td>
+                <td><code>packages/cms/src/repo</code></td>
+              </tr>
+              <tr>
+                <td>R2 object storage</td>
+                <td>Super Admin</td>
+                <td>Attachments, CVs, portal files, content media</td>
+                <td>S3 adapter settings</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="diagram" data-title="Website database: enquiries">
+          <header>
+            <h3>Website database: enquiries</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="erd-website-enquiries">
+            erDiagram
+              ENQUIRIES ||--o{ NOTIFICATION_OUTBOX : "notifies through"
+              ENQUIRIES {
+                uuid id PK
+                text name
+                text email
+                text intent
+                text status
+                uuid idempotency_key UK
+                text ip_hash "HMAC, never the raw IP"
+                timestamptz consent_at
+                text privacy_notice_version
+                timestamptz received_at
+                timestamptz retention_until "received_at plus 24 months"
+              }
+              NOTIFICATION_OUTBOX {
+                uuid id PK
+                uuid enquiry_id FK
+                text kind "one row per enquiry and kind"
+                text event_type
+                text state
+                int attempts
+                timestamptz available_at
+                jsonb payload "identifiers only"
+              }
+              RATE_LIMIT_BUCKETS {
+                text key PK "salted hash"
+                timestamptz window_start PK
+                int hits
+              }
+          </script>
+          <figcaption>
+            RLS is on and <code>anon</code> and <code>authenticated</code> have no privileges.
+            Server code writes only through <code>SECURITY DEFINER</code> functions. The enquiry and
+            its outbox row are written in one transaction, and enquiries are kept for 24 months.
+          </figcaption>
+        </figure>
+
+        <figure class="diagram" data-title="Website database: Relay">
+          <header>
+            <h3>Website database: Relay</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="erd-relay">
+            erDiagram
+              CONVERSATIONS ||--o{ MESSAGES : "contains"
+              CONVERSATIONS ||--o{ HANDOFFS : "escalates"
+              CONVERSATIONS ||--o{ RESUME_TOKENS : "resumed by"
+              CONVERSATIONS |o--o{ EMAIL_OUTBOX : "emails"
+              CONVERSATIONS |o--o{ KB_GAPS : "example for"
+              MESSAGES |o--o{ HANDOFFS : "triggers"
+              KB_DOCUMENTS ||--o{ KB_CHUNKS : "split into"
+              CONVERSATIONS {
+                uuid id PK
+                text visitor_token_hash
+                text channel_key UK
+                conversation_status status
+                citext contact_email
+                timestamptz consent_at
+                text ip_hash
+                int ai_turns
+                timestamptz last_message_at
+              }
+              MESSAGES {
+                uuid id PK
+                uuid conversation_id FK
+                sender_type sender_type
+                text body
+                text body_redacted
+                jsonb citations
+                real confidence
+                int tokens_in
+                int tokens_out
+              }
+              HANDOFFS {
+                uuid id PK
+                uuid conversation_id FK
+                uuid message_id FK
+                handoff_trigger trigger
+                timestamptz requested_at
+                timestamptz joined_at
+                timestamptz resolved_at
+              }
+              RESUME_TOKENS {
+                text token_hash PK
+                uuid conversation_id FK
+                timestamptz expires_at
+              }
+              KB_DOCUMENTS {
+                uuid id PK
+                kb_source source
+                text source_ref UK
+                text title
+                text type
+                text checksum
+                kb_status status
+              }
+              KB_CHUNKS {
+                uuid id PK
+                uuid document_id FK
+                int ix
+                tsvector fts
+                vector embedding "384 dimensions"
+              }
+              KB_GAPS {
+                uuid id PK
+                text question_norm UK
+                int count
+                uuid example_conversation_id FK
+                text status
+              }
+              EMAIL_OUTBOX {
+                uuid id PK
+                uuid conversation_id FK
+                text provider
+                text status
+              }
+          </script>
+          <figcaption>
+            Hybrid retrieval combines a generated <code>tsvector</code> and a 384-dimension vector
+            in <code>relay.match_chunks</code>. Six more tables stand alone: sync runs, staff
+            presence, settings, daily usage, rate limits and the audit log.
+          </figcaption>
+        </figure>
+
+        <figure class="diagram" data-title="Super Admin: enquiries, AI and Data, billing">
+          <header>
+            <h3>Super Admin: enquiries, AI &amp; Data and billing</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="erd-admin-enquiries">
+            erDiagram
+              USER ||--o{ API_TOKEN : "owns"
+              USER |o--o{ ENQUIRY : "assigned"
+              ENQUIRY ||--o{ MESSAGE : "thread"
+              MESSAGE ||--o{ ATTACHMENT : "has"
+              ENQUIRY }o--o{ TAG : "tagged"
+              ENQUIRY ||--o{ ENQUIRY_NOTE : "notes"
+              ENQUIRY |o--o| OPPORTUNITY : "becomes"
+              OPPORTUNITY ||--o{ STAGE_CHANGE : "history"
+              OPPORTUNITY |o--o{ DRAFT : "AI drafts"
+              OPPORTUNITY |o--o{ INVOICE : "billed by"
+              INVOICE ||--o{ INVOICE_LINE : "lines"
+              INVOICE ||--o{ PAYMENT : "paid by"
+              USER {
+                bigint id PK
+                email email UK
+                char full_name
+                bool is_primary_owner
+              }
+              API_TOKEN {
+                bigint id PK
+                bigint user_id FK
+                char prefix
+                char key_hash "hash only"
+                datetime expires_at
+                datetime revoked_at
+              }
+              ENQUIRY {
+                bigint id PK
+                int number
+                char source
+                char status
+                char priority
+                bigint assignee_id FK
+                datetime sla_due_at
+                datetime anonymised_at
+              }
+              MESSAGE {
+                bigint id PK
+                bigint enquiry_id FK
+                char direction
+                char message_id_header
+                text html_body_sanitised
+                char delivery_status
+              }
+              ATTACHMENT {
+                bigint id PK
+                bigint message_id FK
+                char storage_key
+                char sha256
+                char refused_reason
+              }
+              OPPORTUNITY {
+                bigint id PK
+                bigint enquiry_id FK
+                char stage
+                char offer
+                char budget_band
+                decimal estimated_value
+              }
+              DRAFT {
+                bigint id PK
+                bigint opportunity_id FK
+                char kind
+                char state
+                int version
+                uuid execution_id
+                bool simulated
+              }
+              INVOICE {
+                bigint id PK
+                bigint opportunity_id FK
+                char number
+                char status
+                bigint total_pence
+                bigint balance_due_pence
+                char stripe_payment_link_id
+              }
+              PAYMENT {
+                bigint id PK
+                bigint invoice_id FK
+                bigint amount_pence
+                char method
+                char status
+                char stripe_checkout_session_id
+              }
+          </script>
+          <figcaption>
+            An enquiry can become an AI &amp; Data opportunity. AI drafts carry evidence and
+            versions and are never sent automatically; every model call is metered in
+            <code>ModelExecution</code>. Money is stored in pence.
+          </figcaption>
+        </figure>
+
+        <figure class="diagram" data-title="Super Admin: client portal">
+          <header>
+            <h3>Super Admin: client portal</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="erd-admin-portal">
+            erDiagram
+              ORGANISATION ||--o{ MEMBERSHIP : "has"
+              USER ||--o{ MEMBERSHIP : "holds"
+              ORGANISATION ||--o{ CHALLENGE : "raises"
+              OPPORTUNITY |o--o| CHALLENGE : "shared as"
+              CHALLENGE ||--o{ BRIEF_VERSION : "versions"
+              CHALLENGE ||--o{ PROJECT : "delivered by"
+              PROJECT ||--o{ MILESTONE : "plans"
+              PROJECT ||--o{ DELIVERABLE : "produces"
+              MILESTONE |o--o{ DELIVERABLE : "groups"
+              DELIVERABLE ||--o{ DELIVERABLE_VERSION : "versions"
+              DELIVERABLE_VERSION ||--o{ APPROVAL : "approved by"
+              FILE ||--o{ FILE_VERSION : "versions"
+              FILE_VERSION |o--o{ DELIVERABLE_VERSION : "attached to"
+              PROJECT ||--o{ CHANGE_REQUEST : "changes"
+              ORGANISATION {
+                bigint id PK
+                slug slug UK
+                bool is_synthetic
+                bool is_active
+              }
+              MEMBERSHIP {
+                bigint id PK
+                bigint organisation_id FK
+                bigint user_id FK
+                char role
+                datetime revoked_at
+              }
+              CHALLENGE {
+                bigint id PK
+                bigint organisation_id FK
+                bigint opportunity_id FK
+                char journey_stage
+                datetime shared_at
+              }
+              BRIEF_VERSION {
+                bigint id PK
+                bigint challenge_id FK
+                int number
+                char status
+                datetime agreed_at
+              }
+              PROJECT {
+                bigint id PK
+                bigint challenge_id FK
+                char status
+                date target_date
+                datetime published_at
+              }
+              MILESTONE {
+                bigint id PK
+                bigint project_id FK
+                char status
+                date target_date
+              }
+              DELIVERABLE {
+                bigint id PK
+                bigint project_id FK
+                bigint milestone_id FK
+                datetime published_at
+              }
+              DELIVERABLE_VERSION {
+                bigint id PK
+                bigint deliverable_id FK
+                bigint file_version_id FK
+                int number
+                bool requires_approval
+                bool is_contractual
+              }
+              APPROVAL {
+                bigint id PK
+                bigint version_id FK
+                bigint user_id FK
+                char decision
+                text statement
+              }
+              FILE {
+                bigint id PK
+                char visibility
+                bool uploaded_by_customer
+              }
+              FILE_VERSION {
+                bigint id PK
+                bigint file_id FK
+                char storage_key
+                char sha256
+                char upload_status
+              }
+              CHANGE_REQUEST {
+                bigint id PK
+                bigint project_id FK
+                char status
+                char affects
+              }
+          </script>
+          <figcaption>
+            29 portal models; the main path is shown. Every customer-facing record has a publication
+            state, internal notes never reach customers, and approvals are tied to one deliverable
+            version and are not deleted by cascade.
+          </figcaption>
+        </figure>
+
+        <figure class="diagram" data-title="Super Admin: Insights, Careers and content sync">
+          <header>
+            <h3>Super Admin: Insights, Careers and content sync</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="erd-admin-content">
+            erDiagram
+              POST ||--o{ POST_REVISION : "revisions"
+              POST }o--o{ AUTHOR : "written by"
+              POST }o--o{ TOPIC : "filed under"
+              POST ||--o{ EDITORIAL_CHECK : "checked by"
+              ROLE ||--o{ ROLE_REVISION : "revisions"
+              ROLE ||--o{ APPLICATION : "receives"
+              ROLE ||--o{ UPLOAD_TICKET : "issues"
+              APPLICATION ||--o{ APPLICATION_EVENT : "audit trail"
+              POST {
+                uuid id PK
+                char slug UK
+                char status
+                char format
+                datetime publish_at
+                char published_hash
+              }
+              POST_REVISION {
+                bigint id PK
+                bigint post_id FK
+                json snapshot
+                char revision_hash
+              }
+              ROLE {
+                uuid id PK
+                char slug UK
+                char status
+                datetime opens_at
+                datetime closes_at
+              }
+              ROLE_REVISION {
+                bigint id PK
+                uuid role_id FK
+                json snapshot
+              }
+              APPLICATION {
+                uuid id PK
+                uuid role_id FK
+                char stage
+                char cv_path "private bucket key"
+                datetime consent_at
+                char ip_hash
+                datetime decided_at
+              }
+              UPLOAD_TICKET {
+                uuid id PK
+                uuid role_id FK
+                char token_hash
+                datetime expires_at
+                datetime consumed_at
+              }
+              APPLICATION_EVENT {
+                bigint id PK
+                uuid application_id FK
+                char type
+                datetime at
+              }
+              SYNC_EVENT {
+                uuid id PK
+                char entity
+                char action
+                json tags
+                datetime delivered_at
+                int attempts
+              }
+              SLUG_REDIRECT {
+                bigint id PK
+                char entity
+                char from_slug
+                uuid to_id
+              }
+              MEDIA_ASSET {
+                uuid id PK
+                char key
+                char purpose
+                char alt
+              }
+          </script>
+          <figcaption>
+            Each publish writes a revision and a <code>SyncEvent</code> outbox row in the same
+            transaction. CVs go to a private bucket through single-use upload tickets and are
+            deleted six months after the decision once enforcement is on.
+          </figcaption>
+        </figure>
+
+        <figure class="diagram" data-title="Super Admin: company architecture">
+          <header>
+            <h3>Super Admin: company architecture</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="erd-admin-architecture">
+            erDiagram
+              SERVICE_LINE ||--o{ PRACTICE : "groups"
+              PRACTICE ||--o{ SOLUTION : "offers"
+              SOLUTION ||--o{ OFFER : "packages"
+              SERVICE_LINE }o--o{ TEAM_MEMBER : "staffed by"
+              USER |o--o| TEAM_MEMBER : "is"
+              SERVICE_LINE ||--o{ PROJECT : "runs"
+              TEAM_MEMBER |o--o{ PROJECT : "leads"
+              SERVICE_LINE ||--o{ KPI : "measured by"
+              KPI ||--o{ KPI_VALUE : "values"
+              SERVICE_LINE |o--o{ DECISION : "records"
+              USER |o--o{ SERVICE_LINE : "owns"
+              COMPANY {
+                bigint id PK
+                char name
+                char classification
+              }
+              SERVICE_LINE {
+                bigint id PK
+                slug slug UK
+                bigint owner_id FK
+                char classification
+                bool is_archived
+              }
+              PRACTICE {
+                bigint id PK
+                bigint service_line_id FK
+              }
+              SOLUTION {
+                bigint id PK
+                bigint practice_id FK
+              }
+              OFFER {
+                bigint id PK
+                bigint solution_id FK
+              }
+              TEAM_MEMBER {
+                bigint id PK
+                bigint user_id FK
+                char role_title
+              }
+              PROJECT {
+                bigint id PK
+                bigint service_line_id FK
+                bigint lead_id FK
+                char status
+                char classification
+              }
+              KPI {
+                bigint id PK
+                bigint service_line_id FK
+                decimal target
+                bool is_headline
+              }
+              KPI_VALUE {
+                bigint id PK
+                bigint kpi_id FK
+                date date
+                decimal value
+              }
+              DECISION {
+                bigint id PK
+                bigint service_line_id FK
+                date date
+              }
+              USER {
+                bigint id PK
+                email email UK
+              }
+          </script>
+          <figcaption>
+            These models inherit <code>GovernedModel</code>: a classification (Public, Internal,
+            Confidential, Restricted), archive instead of delete, and full history.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="deployment">
+        <h2>Deployment &amp; CI/CD</h2>
+        <p class="sub">Where each part runs, and how a change gets from a branch to production.</p>
+        <figure class="diagram" data-title="Runtime topology">
+          <header>
+            <h3>Runtime topology</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="deploy">
+            flowchart LR
+              subgraph gh["GitHub"]
+                repo["Repository<br/>main and pull requests"]:::infra
+                ghcr[("ghcr.io<br/>Super Admin image")]:::db
+              end
+              subgraph vercel["Vercel"]
+                preview["Preview deployments<br/>per pull request, noindex"]:::web
+                prod["Production website<br/>vitalos.co.uk, dub1"]:::web
+                vcron["Vercel Cron<br/>3 daily jobs"]:::infra
+              end
+              subgraph supa["Supabase: website project"]
+                wpg[("Postgres<br/>public and relay schemas")]:::db
+                efn["Edge Function<br/>relay-embed"]:::svc
+              end
+              subgraph cf["Cloudflare Workers"]
+                tickw["Content tick Worker<br/>every minute"]:::svc
+                edgew["Edge Worker<br/>admin and portal hosts"]:::svc
+              end
+              subgraph gcp["Google Cloud, europe-west2"]
+                ar[("Artifact Registry<br/>ghcr remote repository")]:::db
+                sm["Secret Manager"]:::sec
+                run["Cloud Run service<br/>vitalos-superadmin, 0 to 1"]:::web
+                job["Cloud Run job<br/>release and migrations"]:::svc
+                gcs[("Backup bucket<br/>encrypted dumps")]:::db
+              end
+              adb[("Super Admin Postgres<br/>Supabase or Neon free plan")]:::db
+              r2[("Cloudflare R2<br/>private buckets")]:::db
+
+              repo -- "Git integration" --> preview
+              repo -- "Git integration" --> prod
+              vcron --> prod
+              tickw -- "tick" --> prod
+              prod --> wpg
+              prod --> efn
+              prod <-->|"signed APIs"| run
+              ghcr -- "pull through" --> ar
+              ar --> run
+              ar --> job
+              sm --> run
+              edgew --> run
+              run --> adb
+              job --> adb
+              run -- "presigned URLs" --> r2
+              adb -. "nightly encrypted dump" .-> gcs
+            classDef web fill:#dce4ff,stroke:#2457ff,color:#081a2a
+            classDef svc fill:#e6f4f2,stroke:#007e76,color:#081a2a
+            classDef db fill:#fff6e0,stroke:#9a6700,color:#081a2a
+            classDef infra fill:#f4ecff,stroke:#7a3fd1,color:#081a2a
+            classDef sec fill:#fdecea,stroke:#c9372c,color:#081a2a
+          </script>
+          <figcaption>
+            The website deploys from Git through Vercel. The Super Admin image is built to ghcr.io,
+            pulled through Artifact Registry and deployed to Cloud Run with OIDC, so no cloud keys
+            are stored. It moved there from Azure on 1 Nov 2026.
+          </figcaption>
+        </figure>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Environment</th>
+                <th>Website</th>
+                <th>Super Admin</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Local</td>
+                <td>
+                  <code>pnpm dev:web</code>; content source <code>repo</code>, <code>draft</code>,
+                  <code>fixtures</code> or <code>empty</code>
+                </td>
+                <td>Docker Compose with its own PostgreSQL</td>
+                <td>Local Supabase stack; artificial fixtures only</td>
+              </tr>
+              <tr>
+                <td>Preview</td>
+                <td>Vercel preview per pull request; <code>noindex</code> everywhere</td>
+                <td>None</td>
+                <td>Separate secrets and data; production data is never copied</td>
+              </tr>
+              <tr>
+                <td>Staging</td>
+                <td>Not provisioned (ADR-015)</td>
+                <td>None</td>
+                <td>None</td>
+              </tr>
+              <tr>
+                <td>Production</td>
+                <td>
+                  <code>vitalos.co.uk</code> from <code>main</code>; only the canonical host is
+                  indexable
+                </td>
+                <td>
+                  <code>admin.vitalos.co.uk</code>; <code>portal.vitalos.co.uk</code> once bound
+                </td>
+                <td>Website Supabase project, Super Admin PostgreSQL, R2</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="diagram" data-title="CI/CD pipeline">
+          <header>
+            <h3>CI/CD pipeline</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="cicd">
+            flowchart LR
+              pr["Pull request"]:::person
+              subgraph ci["CI workflow"]
+                direction TB
+                quality["quality<br/>change detection, secret scan, audit,<br/>format, email guard, lint, typecheck, boundaries"]:::infra
+                unit["unit: tests and builds"]:::infra
+                browser["Browser suites: e2e, sparse, draft,<br/>Askbridge, visual, Storybook axe, SEO"]:::infra
+                pgtap["database: pgTAP on local Supabase"]:::infra
+                quality --> unit
+                quality --> browser
+                quality --> pgtap
+              end
+              satest["Super Admin workflow<br/>tests, email gallery,<br/>security, container"]:::infra
+              scan["Secret scan and CodeQL"]:::sec
+              merge["Merge to main<br/>required checks green"]:::infra
+              vprod["Vercel production deploy"]:::web
+              indexnow["IndexNow ping"]:::infra
+              subgraph deploy["Super Admin deploy"]
+                direction TB
+                cur["Read deployed commit"]:::infra
+                plan["Plan and guards<br/>destructive migration check"]:::sec
+                build["Build image to ghcr.io"]:::infra
+                backup["Encrypted pre-migration backup"]:::infra
+                rollout["Release job, then Cloud Run<br/>revision and health check"]:::web
+                cur --> plan --> build --> backup --> rollout
+              end
+              pr --> ci
+              pr --> satest
+              pr --> scan
+              ci --> merge
+              satest --> merge
+              merge --> vprod --> indexnow
+              merge -- "Super Admin CI green" --> deploy
+            classDef person fill:#081a2a,stroke:#081a2a,color:#ffffff
+            classDef web fill:#dce4ff,stroke:#2457ff,color:#081a2a
+            classDef infra fill:#f4ecff,stroke:#7a3fd1,color:#081a2a
+            classDef sec fill:#fdecea,stroke:#c9372c,color:#081a2a
+          </script>
+          <figcaption>
+            <code>quality</code> runs first and decides which jobs a pull request needs. Browser
+            suites and pgTAP skip draft pull requests. Super Admin pushes to <code>main</code> are
+            never cancelled, so every commit gets a complete run to deploy from.
+          </figcaption>
+        </figure>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Trigger</th>
+                <th>Runner</th>
+                <th>What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>ci.yml</code></td>
+                <td>Pull requests; pushes to <code>main</code> on code paths</td>
+                <td>ubuntu-latest</td>
+                <td>
+                  Quality gate, then affected unit tests and builds, e2e suites, visual, Storybook
+                  axe, SEO and pgTAP.
+                </td>
+              </tr>
+              <tr>
+                <td><code>superadmin.yml</code></td>
+                <td>
+                  Pull requests and pushes touching <code>superadmin/</code> or the content contract
+                </td>
+                <td>ubuntu-latest, PostgreSQL 17 service</td>
+                <td>
+                  Ruff, tests, deploy checks, email gallery, pip-audit, bandit, container build and
+                  smoke test.
+                </td>
+              </tr>
+              <tr>
+                <td><code>superadmin-deploy.yml</code></td>
+                <td>
+                  Super Admin CI green on <code>main</code>; manual with <code>confirm=DEPLOY</code>
+                </td>
+                <td>ubuntu-latest, <code>production</code></td>
+                <td>Guards, image build, backup, release job, Cloud Run revision, health check.</td>
+              </tr>
+              <tr>
+                <td><code>backup.yml</code></td>
+                <td>Nightly; before every deploy</td>
+                <td>ubuntu-latest, <code>backup</code></td>
+                <td>
+                  Encrypted <code>pg_dump</code> of the Super Admin database to a private bucket.
+                </td>
+              </tr>
+              <tr>
+                <td><code>relay-knowledge.yml</code></td>
+                <td>Pushes to <code>main</code> touching knowledge or site content</td>
+                <td>ubuntu-latest, <code>production</code></td>
+                <td>Ingests and re-embeds Relay knowledge.</td>
+              </tr>
+              <tr>
+                <td><code>ai-data-live-eval.yml</code></td>
+                <td>Manual only</td>
+                <td>ubuntu-latest, <code>production</code></td>
+                <td>
+                  Live demonstrator run against the AI &amp; Data provider, capped at 40 calls,
+                  synthetic data.
+                </td>
+              </tr>
+              <tr>
+                <td><code>codeql.yml</code></td>
+                <td>Code changes; weekly</td>
+                <td>ubuntu-latest</td>
+                <td>CodeQL for JavaScript and TypeScript.</td>
+              </tr>
+              <tr>
+                <td><code>secret-scan.yml</code></td>
+                <td>Pull requests and pushes to <code>main</code></td>
+                <td>ubuntu-latest</td>
+                <td>gitleaks.</td>
+              </tr>
+              <tr>
+                <td><code>audit.yml</code></td>
+                <td>Weekly</td>
+                <td>ubuntu-latest</td>
+                <td>Secret patterns and <code>pnpm audit</code>.</td>
+              </tr>
+              <tr>
+                <td><code>indexnow.yml</code></td>
+                <td>Vercel deployment status</td>
+                <td>ubuntu-latest</td>
+                <td>Pings IndexNow with the URLs that changed.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="flows">
+        <h2>Key flows</h2>
+        <p class="sub">The journeys that matter most, step by step.</p>
+        <figure class="diagram" data-title="Flow: website enquiry">
+          <header>
+            <h3>Website enquiry</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="flow-enquiry">
+            sequenceDiagram
+              autonumber
+              actor V as Visitor
+              participant W as Website server action
+              participant T as Turnstile
+              participant DB as Website Postgres
+              participant M as Resend or Postmark
+              participant S as Super Admin
+              V->>W: Submit the contact form
+              W->>T: Verify the token server-side
+              T-->>W: Valid
+              W->>DB: rate_limit_consume with a salted key
+              W->>DB: submit_enquiry, record and outbox row in one transaction
+              DB-->>W: Reference, or the original one for a replayed key
+              W-->>V: Thank-you page with the reference
+              Note over W,DB: Runs after the response, and daily from Vercel Cron as a backstop
+              W->>DB: claim_outbox_batch
+              W->>M: Notification email, identifiers only in the subject
+              W->>DB: mark_outbox as sent, or failed with a retry time
+              opt Inbound mail enabled, an owner step
+                M->>S: support copy posted by the Email Worker, filed as a website-form enquiry
+              end
+          </script>
+          <figcaption>
+            The record is stored before anything is sent. Email is a notification channel, never the
+            record, and a failed notification never removes an enquiry (ADR-019).
+          </figcaption>
+        </figure>
+        <figure class="diagram" data-title="Flow: Relay answer and hand-off">
+          <header>
+            <h3>Relay answer and hand-off to a person</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="flow-relay">
+            sequenceDiagram
+              autonumber
+              actor V as Visitor
+              participant WG as Relay widget
+              participant W as Website Relay API
+              participant DB as Postgres relay schema
+              participant E as relay-embed
+              participant L as DeepSeek
+              participant S as Super Admin
+              actor A as Staff
+              Note over V,W: With the Askbridge site key set, the Askbridge widget replaces Relay on the site
+              V->>WG: Ask a question
+              WG->>W: POST message with the visitor token
+              W->>DB: Rate limit and daily token cap
+              W->>E: Embed the question
+              W->>DB: match_chunks, full-text and vector search
+              W->>W: Redact personal data from the prompt
+              W->>L: Answer only from the retrieved sources
+              L-->>W: Streamed tokens
+              W-->>WG: Streamed answer with citations
+              W->>DB: Store message, citations, confidence and usage
+              alt Low confidence, or the visitor asks for a person
+                W->>DB: Open a hand-off
+                W->>S: Signed webhook, hand-off requested
+                S-->>A: In-app notification and email
+                A->>S: Reply in the Relay inbox
+                S->>W: Signed admin API, post the reply
+                W->>DB: Store the staff message
+                W-->>WG: Realtime Broadcast ping
+                WG->>W: Fetch new messages
+              end
+          </script>
+          <figcaption>
+            The website owns Relay data; the Super Admin presents the inbox and forwards replies
+            through the signed admin API (ADR-035 to ADR-038).
+          </figcaption>
+        </figure>
+        <figure class="diagram" data-title="Flow: publishing and the content tick">
+          <header>
+            <h3>Publishing Insights and the content tick</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="flow-content">
+            sequenceDiagram
+              autonumber
+              actor Ed as Editor
+              participant S as Super Admin
+              participant DB as Super Admin Postgres
+              participant W as Website
+              participant CF as Content tick Worker
+              actor V as Visitor
+              Ed->>S: Publish or schedule an Insights post
+              S->>DB: Change, revision, audit row and SyncEvent in one transaction
+              S->>W: On commit, signed POST /api/content/revalidate
+              W->>W: Revalidate tags, then warm the affected paths
+              W->>S: Signed reads of the content API
+              V->>W: Open the post
+              W-->>V: Cached page, 600 second TTL
+              loop Every minute
+                CF->>W: GET /api/content/cron/tick with the shared secret
+                alt Scheduled work is due
+                  W->>S: Signed POST /api/content/v1/tick
+                  S->>DB: Claim due rows with skip locked, publish or close
+                else Nothing is due
+                  W-->>CF: Return without calling the Super Admin
+                end
+              end
+          </script>
+          <figcaption>
+            Idle minutes cost nothing: the website reads the cached next-due time and calls the
+            Super Admin only when work is due. A daily Vercel Cron and a 10-minute cache TTL are the
+            backstops (ADR-040, ADR-042).
+          </figcaption>
+        </figure>
+        <figure class="diagram" data-title="Flow: AI and Data brief assist">
+          <header>
+            <h3>AI &amp; Data brief assist</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="flow-assist">
+            sequenceDiagram
+              autonumber
+              actor V as Visitor
+              participant W as Website AI and Data brief
+              participant S as Super Admin brief-assist
+              participant G as aicore gateway
+              participant P as Anthropic
+              V->>W: Answer the guided brief questions
+              W->>S: Signed POST /api/ai-data/brief-assist/ with a hashed visitor reference
+              S->>S: Signature, feature switch, body checks and rate limits
+              S->>G: Ask for a suggestion
+              G->>G: Versioned prompt, kill switch, per-run, daily and monthly caps
+              G->>P: Messages API call
+              P-->>G: Response
+              G->>G: Validate against the schema, record ModelExecution and cost
+              G-->>S: Suggestion, or unavailable
+              S-->>W: Follow-up questions and a draft brief
+              W-->>V: Suggestions, or the checklist when AI is unavailable
+              Note over S,G: Stores metadata and hashes only, never the visitor's words
+          </script>
+          <figcaption>
+            Everything the model returns is a suggestion. When the model is off, over a cap or
+            failing, the visitor gets the plain checklist (ADR-052, ADR-055).
+          </figcaption>
+        </figure>
+        <figure class="diagram" data-title="Flow: Super Admin deploy">
+          <header>
+            <h3>Super Admin deploy</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="flow-deploy">
+            sequenceDiagram
+              autonumber
+              participant PR as Pull request
+              participant CI as Super Admin CI
+              participant D as Super Admin deploy
+              participant G as ghcr.io
+              participant B as Backup workflow
+              participant R as Cloud Run
+              PR->>CI: Merge to main with Super Admin changes
+              CI-->>D: workflow_run completed, success
+              D->>R: Read the commit running now, through OIDC
+              D->>D: Every CI job green, destructive-migration guard over the whole range
+              D->>G: Build and push the image tagged with the commit
+              D->>B: Dispatch the backup and wait
+              B-->>D: Encrypted dump stored
+              D->>R: Run the release job, migrations
+              D->>R: Deploy the new revision
+              D->>R: Check /healthz/ and the running image
+              Note over D,R: Rollback is a printed command that a person runs
+          </script>
+          <figcaption>
+            The exact commit that CI tested is deployed. Destructive or risky migrations anywhere
+            since the running commit stop the automatic deploy and need a reviewed manual run.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section id="security">
+        <h2>Security</h2>
+        <p class="sub">
+          Trust boundaries, authentication and authorisation, secrets handling and data protection,
+          at design level. The full threat model is <code>docs/security/threat-model.md</code>.
+        </p>
+        <figure class="diagram" data-title="Trust boundaries">
+          <header>
+            <h3>Trust boundaries</h3>
+            <div class="tools"></div>
+          </header>
+          <div class="canvas mmd"></div>
+          <script type="text/plain" class="mmd" data-name="trust">
+            flowchart LR
+              subgraph internet["Untrusted: public internet"]
+                visitor(["Visitors"]):::person
+                clientu(["Client users"]):::person
+                staffu(["Staff"]):::person
+              end
+              subgraph edgezone["Edge controls"]
+                csp["CSP and security headers,<br/>noindex outside production"]:::sec
+                turn["Turnstile, honeypots<br/>and rate limits"]:::sec
+                edgew["Cloudflare edge Worker<br/>shared-secret header"]:::sec
+              end
+              subgraph webzone["Vercel: website"]
+                web["Website server code<br/>server-only secrets"]:::web
+              end
+              subgraph adminzone["Cloud Run: Super Admin"]
+                auth["Password, TOTP, lockout,<br/>roles and classifications"]:::sec
+                admin["Super Admin and portal"]:::web
+              end
+              subgraph datazone["Restricted: data stores"]
+                wpg[("Website Postgres<br/>RLS on, no anon grants")]:::db
+                adb[("Super Admin Postgres<br/>separate database")]:::db
+                r2[("R2 private buckets")]:::db
+              end
+              subgraph processors["Processors"]
+                llm["DeepSeek: redacted input<br/>Anthropic: capped gateway"]:::ext
+                pay["Stripe<br/>verified webhooks"]:::ext
+              end
+              visitor --> csp --> web
+              visitor --> turn --> web
+              clientu --> edgew
+              staffu --> edgew
+              edgew --> auth --> admin
+              web <-->|"HMAC, scoped keys,<br/>300 s window"| admin
+              web -- "secret key, definer functions" --> wpg
+              admin --> adb
+              admin -- "short-lived signed URLs" --> r2
+              web --> llm
+              admin --> llm
+              admin <--> pay
+            classDef person fill:#081a2a,stroke:#081a2a,color:#ffffff
+            classDef web fill:#dce4ff,stroke:#2457ff,color:#081a2a
+            classDef db fill:#fff6e0,stroke:#9a6700,color:#081a2a
+            classDef ext fill:#f1f3f5,stroke:#536273,color:#26333f,stroke-dasharray:4 3
+            classDef sec fill:#fdecea,stroke:#c9372c,color:#081a2a
+          </script>
+          <figcaption>
+            Public traffic meets browser and form controls before the website, and staff and clients
+            meet the edge Worker and sign-in before the Super Admin. Each data store is reached by
+            one owner only.
+          </figcaption>
+        </figure>
+        <div class="grid-3">
+          <div class="card">
+            <span class="tag sec">Auth</span>
+            <h4>Staff and clients</h4>
+            <ul>
+              <li>Email and password with lockout (django-axes)</li>
+              <li>TOTP required for SuperAdmin and anyone who enrols</li>
+              <li>8-hour HttpOnly sessions; host-only cookies split admin and portal</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag sec">Access</span>
+            <h4>Authorisation</h4>
+            <ul>
+              <li>Roles: SuperAdmin, ServiceLead, Viewer</li>
+              <li>Record classifications limit who sees what</li>
+              <li>Portal users see only their organisation's published records</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag sec">Machines</span>
+            <h4>Service to service</h4>
+            <ul>
+              <li>HMAC-SHA256 with per-scope key lists and a 300-second window</li>
+              <li>Hashed Bearer tokens for the read API</li>
+              <li>OIDC from GitHub Actions to Google Cloud</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag sec">Secrets</span>
+            <h4>Where they live</h4>
+            <ul>
+              <li>Vercel environment variables for the website</li>
+              <li>
+                GitHub <code>production</code> and <code>backup</code> environments for deploys and
+                backups
+              </li>
+              <li>Google Secret Manager at runtime; Cloudflare Worker secrets</li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag sec">Privacy</span>
+            <h4>Data protection</h4>
+            <ul>
+              <li>IP addresses stored only as HMACs</li>
+              <li>Retention: enquiries 24 months, Relay nightly purge, applications six months</li>
+              <li>
+                Relay redacts before every model call; AI &amp; Data stores metadata and hashes only
+              </li>
+            </ul>
+          </div>
+          <div class="card">
+            <span class="tag sec">Pipeline</span>
+            <h4>Supply chain and browser</h4>
+            <ul>
+              <li>Pinned actions, Dependabot, pnpm audit, pip-audit, bandit, CodeQL, gitleaks</li>
+              <li>Client-bundle secret scan; <code>@vitalos/config</code> is server-only</li>
+              <li>
+                CSP, <code>frame-ancestors 'none'</code>, <code>noindex</code> outside production
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="decisions">
+        <h2>Decisions &amp; risks</h2>
+        <p class="sub">
+          The architecture decisions that shape these views, documentation that no longer matches
+          the code, and the open risks visible in the repository.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Record</th>
+                <th>Decision</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><a href="../docs/adr/ADR-003-modular-monolith.md">ADR-003</a></td>
+                <td>
+                  Modular monolith first; extract a service only for a justified need (with
+                  <a href="../docs/adr/ADR-010-service-extraction.md">ADR-010</a>).
+                </td>
+              </tr>
+              <tr>
+                <td><a href="../docs/adr/ADR-004-next-vercel.md">ADR-004</a></td>
+                <td>Next.js App Router on Vercel.</td>
+              </tr>
+              <tr>
+                <td><a href="../docs/adr/ADR-019-enquiry-pipeline.md">ADR-019</a></td>
+                <td>Enquiry pipeline: PostgreSQL record plus durable outbox.</td>
+              </tr>
+              <tr>
+                <td><a href="../docs/adr/ADR-026-superadmin-django.md">ADR-026</a></td>
+                <td>Super Admin as an isolated Django application with its own database.</td>
+              </tr>
+              <tr>
+                <td><a href="../docs/adr/ADR-028-repo-file-content.md">ADR-028</a></td>
+                <td>Repo-file content replaces Sanity for the public site.</td>
+              </tr>
+              <tr>
+                <td><a href="../docs/adr/ADR-030-shared-email-layout.md">ADR-030</a></td>
+                <td>One shared email layout for every Vitalos email, mirrored in Python.</td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="../docs/adr/ADR-035-relay-admin-boundary.md">ADR-035</a> to
+                  <a href="../docs/adr/ADR-038-relay-realtime-scheduling.md">ADR-038</a>
+                </td>
+                <td>
+                  Relay: the website owns the data, DeepSeek behind an interface, hybrid retrieval,
+                  Realtime pings and <code>pg_cron</code>.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="../docs/adr/ADR-039-admin-managed-insights-careers.md">ADR-039</a>,
+                  <a href="../docs/adr/ADR-040-content-api-contract-and-sync.md">ADR-040</a>
+                </td>
+                <td>
+                  Insights and Careers managed in the Super Admin and served through a signed,
+                  versioned content API.
+                </td>
+              </tr>
+              <tr>
+                <td><a href="../docs/adr/ADR-042-content-scheduler.md">ADR-042</a></td>
+                <td>
+                  Content scheduler: a free per-minute Cloudflare cron that wakes the admin only
+                  when needed.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="../docs/adr/ADR-044-product-pipeline-askbridge-status.md">ADR-044</a>,
+                  <a href="../docs/adr/ADR-045-askbridge-public-site-assistant.md">ADR-045</a>
+                </td>
+                <td>
+                  Product status reads from Askbridge and the other products; the site assistant can
+                  switch to Askbridge.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="../docs/adr/ADR-052-vitalos-ai-data-foundation.md">ADR-052</a>,
+                  <a href="../docs/adr/ADR-055-admin-ai-workspace.md">ADR-055</a>
+                </td>
+                <td>
+                  AI &amp; Data on the existing platform, with every model call through the capped
+                  gateway.
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <a href="../docs/adr/ADR-053-billing-invoices-payments.md">ADR-053</a>,
+                  <a href="../docs/adr/ADR-056-client-portal.md">ADR-056</a>
+                </td>
+                <td>
+                  Billing with Stripe, and the client portal inside the Super Admin on its own host.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Documentation drift</h3>
+        <div class="callout warn">
+          <strong><code>ARCHITECTURE.md</code></strong> describes the state of 10 Oct 2026: it says
+          no remote Supabase project is used and lists only enquiry data. The
+          <code>Relay knowledge</code> workflow now writes to a production Supabase project, and
+          Relay, Insights, Careers, AI &amp; Data, billing and the portal have landed since.
+        </div>
+        <div class="callout warn">
+          <strong><code>docs/architecture/container-architecture.md</code></strong> shows Vercel as
+          the "intended host; previews blocked", while the README says the site is live on Vercel.
+        </div>
+        <div class="callout warn">
+          <strong>ADR-042 and parts of <code>superadmin/docs/DEPLOY.md</code></strong> still
+          describe Azure (for example a Container Apps job) after the move to Cloud Run on 1 Nov
+          2026, and the deploy guide's status line still reads "Not live yet".
+        </div>
+        <div class="callout warn">
+          <strong>The ADR index</strong> says it was last reviewed on 10 Oct 2026 but lists ADRs up
+          to 056. ADR-029, ADR-044 and ADR-045 are still marked Proposed although their code is in
+          the repository.
+        </div>
+
+        <h3>Open risks</h3>
+        <div class="grid-3">
+          <div class="card">
+            <h4>One instance, free-plan data</h4>
+            <p>
+              The Super Admin runs at most one Cloud Run instance on a free-plan database. Nightly
+              encrypted dumps are the only copy outside the provider.
+            </p>
+          </div>
+          <div class="card">
+            <h4>Two assistants behind one switch</h4>
+            <p>
+              Relay and the Askbridge widget both stay in the code, selected by a build-time key.
+              Both paths need to keep passing their e2e suites.
+            </p>
+          </div>
+          <div class="card">
+            <h4>Shared production environment</h4>
+            <p>
+              The website and the Super Admin share the GitHub <code>production</code> environment.
+              Distinct secret names keep their values apart.
+            </p>
+          </div>
+          <div class="card">
+            <h4>Inbound mail and portal domain</h4>
+            <p>
+              The Email Worker is prepared but not deployed, and the portal domain binding is
+              pending. Both are owner steps.
+            </p>
+          </div>
+          <div class="card">
+            <h4>Retention in dry run</h4>
+            <p>Application retention logs counts until a person switches enforcement on.</p>
+          </div>
+          <div class="card">
+            <h4>Model data exposure</h4>
+            <p>
+              Relay's redaction is pattern based, and AI &amp; Data relies on input limits rather
+              than redaction.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <p>
+          Snapshot of <code>vitalos-technologies/vitalos-platform</code> at <code>2096148</code>, 3
+          Nov 2026. Diagram sources live in the Markdown files next to this page:
+          <a href="README.md">README</a> ·
+          <a href="01-context-containers.md">Context and containers</a> ·
+          <a href="02-data-model.md">Data model</a> ·
+          <a href="03-deployment-cicd.md">Deployment and CI/CD</a> ·
+          <a href="04-flows-security.md">Flows and security</a>.
+        </p>
+        <p>
+          Inspected: <code>ARCHITECTURE.md</code>, <code>docs/architecture/</code>,
+          <code>docs/adr/</code>, <code>docs/security/</code>, <code>apps/web</code> (routes,
+          features, <code>proxy.ts</code>, <code>vercel.json</code>), <code>packages/*</code>,
+          <code>supabase/migrations</code> and <code>functions</code>,
+          <code>superadmin/apps/*/models.py</code>, <code>superadmin/config</code>,
+          <code>superadmin/docs/DEPLOY.md</code>, <code>superadmin/deploy/gcp</code>,
+          <code>infra/</code> and <code>.github/workflows/</code>.
+        </p>
+        <p>
+          Portfolio map: see <code>vitalos-technologies/vitalos-platform</code>,
+          <code>arch/portfolio/</code>.
+        </p>
+      </div>
+    </footer>
+
+    <dialog id="zoom" aria-labelledby="zoom-title">
+      <div class="bar">
+        <h3 id="zoom-title">Diagram</h3>
+        <div>
+          <button class="icon-btn" type="button" data-z="out" aria-label="Zoom out">−</button>
+          <button class="icon-btn" type="button" data-z="fit">Fit</button>
+          <button class="icon-btn" type="button" data-z="in" aria-label="Zoom in">+</button>
+          <button class="icon-btn" type="button" data-z="close">Close</button>
+        </div>
+      </div>
+      <div class="stage"></div>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+    <script>
+      (function () {
+        "use strict";
+        var root = document.documentElement;
+        var KEY = "vitalos-arch-theme";
+        try {
+          var saved = localStorage.getItem(KEY);
+          if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved);
+        } catch (e) {}
+        var mq = window.matchMedia("(prefers-color-scheme: dark)");
+        function theme() {
+          return root.getAttribute("data-theme") || (mq.matches ? "dark" : "light");
+        }
+        function v(name) {
+          return getComputedStyle(root).getPropertyValue(name).trim();
+        }
+
+        function dedent(s) {
+          var lines = s.replace(/\t/g, "  ").split("\n");
+          while (lines.length && !lines[0].trim()) lines.shift();
+          while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+          var min = Infinity;
+          lines.forEach(function (l) {
+            if (l.trim()) min = Math.min(min, l.match(/^ */)[0].length);
+          });
+          return lines
+            .map(function (l) {
+              return l.slice(min === Infinity ? 0 : min);
+            })
+            .join("\n");
+        }
+        var KINDS = ["person", "web", "svc", "db", "ext", "infra", "sec"];
+        function classDefs() {
+          return KINDS.map(function (k) {
+            var fg = k === "person" ? v("--n-person-fg") : v("--text");
+            return (
+              "classDef " +
+              k +
+              " fill:" +
+              v("--n-" + k + "-bg") +
+              ",stroke:" +
+              v("--n-" + k + "-line") +
+              ",color:" +
+              fg +
+              (k === "ext" ? ",stroke-dasharray:4 3" : "")
+            );
+          }).join("\n");
+        }
+        function themeVars() {
+          var dark = theme() === "dark";
+          return {
+            darkMode: dark,
+            fontFamily: v("--font"),
+            fontSize: "15px",
+            background: v("--surface"),
+            primaryColor: v("--n-web-bg"),
+            primaryBorderColor: v("--n-web-line"),
+            primaryTextColor: v("--text"),
+            secondaryColor: v("--n-svc-bg"),
+            secondaryBorderColor: v("--n-svc-line"),
+            secondaryTextColor: v("--text"),
+            tertiaryColor: v("--surface-2"),
+            tertiaryBorderColor: v("--border"),
+            tertiaryTextColor: v("--text"),
+            mainBkg: v("--n-web-bg"),
+            nodeBorder: v("--n-web-line"),
+            nodeTextColor: v("--text"),
+            textColor: v("--text"),
+            lineColor: v("--edge"),
+            clusterBkg: v("--surface-2"),
+            clusterBorder: v("--boundary"),
+            titleColor: v("--text"),
+            edgeLabelBackground: v("--surface"),
+            labelBackground: v("--surface"),
+            actorBkg: v("--n-web-bg"),
+            actorBorder: v("--n-web-line"),
+            actorTextColor: v("--text"),
+            actorLineColor: v("--boundary"),
+            signalColor: v("--edge"),
+            signalTextColor: v("--text"),
+            labelBoxBkgColor: v("--surface-2"),
+            labelBoxBorderColor: v("--border"),
+            labelTextColor: v("--text"),
+            loopTextColor: v("--text"),
+            noteBkgColor: v("--n-db-bg"),
+            noteBorderColor: v("--n-db-line"),
+            noteTextColor: v("--text"),
+            activationBkgColor: v("--n-svc-bg"),
+            activationBorderColor: v("--n-svc-line"),
+            sequenceNumberColor: dark ? "#081a2a" : "#ffffff",
+            attributeBackgroundColorOdd: v("--surface"),
+            attributeBackgroundColorEven: v("--surface-2"),
+            git0: v("--accent"),
+            cScale0: v("--n-web-bg"),
+            cScale1: v("--n-svc-bg"),
+            cScale2: v("--n-db-bg"),
+          };
+        }
+        var seq = 0;
+        async function renderAll() {
+          window.__archErrors = [];
+          window.__archRendered = false;
+          var blocks = document.querySelectorAll("script.mmd");
+          if (!window.mermaid) {
+            blocks.forEach(function (s) {
+              var c = s.parentElement.querySelector(".canvas");
+              c.textContent = "";
+              var pre = document.createElement("pre");
+              pre.className = "mmd-fallback";
+              pre.textContent = dedent(s.textContent);
+              c.appendChild(pre);
+            });
+            window.__archRendered = true;
+            return;
+          }
+          window.mermaid.initialize({
+            startOnLoad: false,
+            theme: "base",
+            securityLevel: "strict",
+            themeVariables: themeVars(),
+            flowchart: {
+              curve: "basis",
+              padding: 14,
+              nodeSpacing: 46,
+              rankSpacing: 56,
+              htmlLabels: true,
+            },
+            sequence: {
+              useMaxWidth: true,
+              mirrorActors: false,
+              showSequenceNumbers: true,
+              boxMargin: 8,
+              messageFontSize: 14,
+            },
+            er: { useMaxWidth: true, layoutDirection: "TB", minEntityWidth: 120, fontSize: 13 },
+          });
+          for (var i = 0; i < blocks.length; i++) {
+            var s = blocks[i],
+              c = s.parentElement.querySelector(".canvas");
+            var src = dedent(s.textContent).replace(
+              /^[ \t]*classDef[ \t]+(person|web|svc|db|ext|infra|sec)\b.*$/gm,
+              "",
+            );
+            if (/^\s*(flowchart|graph)\b/.test(src)) src += "\n" + classDefs();
+            var id = "mmd-" + ++seq;
+            try {
+              var out = await window.mermaid.render(id, src);
+              c.innerHTML = out.svg;
+              var el = c.querySelector("svg"),
+                vb = el && el.viewBox && el.viewBox.baseVal;
+              if (vb && vb.width) {
+                el.style.maxWidth = Math.round(vb.width) + "px";
+                el.style.minWidth = Math.round(Math.min(vb.width, 720)) + "px";
+              }
+            } catch (e) {
+              var stray = document.getElementById("d" + id);
+              if (stray) stray.remove();
+              window.__archErrors.push({
+                name: s.dataset.name || "block " + i,
+                message: String((e && e.message) || e),
+              });
+              c.textContent = "";
+              var err = document.createElement("pre");
+              err.className = "mmd-error";
+              err.textContent = "Diagram failed to render: " + ((e && e.message) || e);
+              c.appendChild(err);
+              var pre = document.createElement("pre");
+              pre.className = "mmd-fallback";
+              pre.textContent = dedent(s.textContent);
+              c.appendChild(pre);
+            }
+          }
+          window.__archRendered = true;
+        }
+
+        // Figure tools: Expand and Source
+        var dlg = document.getElementById("zoom"),
+          stage = dlg.querySelector(".stage"),
+          scale = 1;
+        function applyScale() {
+          var svg = stage.querySelector("svg");
+          if (!svg) return;
+          var w = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width;
+          svg.style.width = (w ? w * scale : 1000 * scale) + "px";
+        }
+        function fit() {
+          var svg = stage.querySelector("svg");
+          if (!svg) return;
+          var w = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || 1000;
+          scale = Math.max(0.2, Math.min(3, (stage.clientWidth - 32) / w));
+          applyScale();
+        }
+        dlg.addEventListener("click", function (e) {
+          var b = e.target.closest("button[data-z]");
+          if (!b) {
+            if (e.target === dlg) dlg.close();
+            return;
+          }
+          var z = b.getAttribute("data-z");
+          if (z === "close") dlg.close();
+          else if (z === "fit") fit();
+          else {
+            scale = Math.max(0.2, Math.min(4, scale * (z === "in" ? 1.25 : 0.8)));
+            applyScale();
+          }
+        });
+        document.querySelectorAll("figure.diagram").forEach(function (fig) {
+          var tools = fig.querySelector(".tools");
+          if (!tools) return;
+          var ex = document.createElement("button");
+          ex.type = "button";
+          ex.textContent = "Expand";
+          ex.addEventListener("click", function () {
+            var svg = fig.querySelector(".canvas > svg");
+            if (!svg) return;
+            stage.textContent = "";
+            var copy = svg.cloneNode(true);
+            copy.removeAttribute("id");
+            copy.style.maxWidth = "none";
+            copy.style.minWidth = "0";
+            copy.querySelectorAll("[id]").forEach(function (n) {
+              if (n.tagName.toLowerCase() === "marker") return;
+            });
+            stage.appendChild(copy);
+            dlg.querySelector("#zoom-title").textContent =
+              fig.getAttribute("data-title") || "Diagram";
+            dlg.showModal();
+            fit();
+          });
+          tools.appendChild(ex);
+          var mmd = fig.querySelector("script.mmd");
+          if (mmd) {
+            var sb = document.createElement("button");
+            sb.type = "button";
+            sb.textContent = "Source";
+            sb.setAttribute("aria-expanded", "false");
+            sb.addEventListener("click", function () {
+              var pre = fig.querySelector("pre.mmd-src");
+              if (pre) {
+                pre.remove();
+                sb.setAttribute("aria-expanded", "false");
+                return;
+              }
+              pre = document.createElement("pre");
+              pre.className = "mmd-src";
+              pre.textContent = dedent(mmd.textContent);
+              fig.insertBefore(pre, fig.querySelector("figcaption"));
+              sb.setAttribute("aria-expanded", "true");
+            });
+            tools.appendChild(sb);
+          }
+        });
+
+        // Theme toggle
+        document.getElementById("theme-toggle").addEventListener("click", function () {
+          var next = theme() === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          try {
+            localStorage.setItem(KEY, next);
+          } catch (e) {}
+          renderAll();
+        });
+        mq.addEventListener("change", function () {
+          if (!root.getAttribute("data-theme")) renderAll();
+        });
+
+        // Active section highlight
+        var links = Array.prototype.slice.call(document.querySelectorAll(".tabs a"));
+        if ("IntersectionObserver" in window) {
+          var io = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (en) {
+                if (!en.isIntersecting) return;
+                links.forEach(function (a) {
+                  a.classList.toggle("active", a.getAttribute("href") === "#" + en.target.id);
+                });
+              });
+            },
+            { rootMargin: "-40% 0px -55% 0px" },
+          );
+          document.querySelectorAll("main section[id]").forEach(function (s) {
+            io.observe(s);
+          });
+        }
+
+        renderAll();
+      })();
+    </script>
+  </body>
+</html>
