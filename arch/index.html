@@ -343,6 +343,10 @@
           grid-template-columns: repeat(3, 1fr);
         }
       }
+      .grid-2 > *,
+      .grid-3 > * {
+        min-width: 0;
+      }
       .card {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -654,7 +658,7 @@
         stroke: none;
       }
       svg.arch .badge text {
-        fill: #ffffff;
+        fill: var(--surface);
         font-size: 11px;
         font-weight: 700;
         text-anchor: middle;
@@ -2744,10 +2748,7 @@
           <code>superadmin/docs/DEPLOY.md</code>, <code>superadmin/deploy/gcp</code>,
           <code>infra/</code> and <code>.github/workflows/</code>.
         </p>
-        <p>
-          Portfolio map: see <code>vitalos-technologies/vitalos-platform</code>,
-          <code>arch/portfolio/</code>.
-        </p>
+        <p>A portfolio map of all Vitalos projects is kept in a private Vitalos repository.</p>
       </div>
     </footer>
 
