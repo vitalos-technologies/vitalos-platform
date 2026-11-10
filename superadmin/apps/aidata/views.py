@@ -15,8 +15,10 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from apps.accounts.roles import SERVICE_LEAD, SUPERADMIN, role_required
 from apps.enquiries import selectors as enquiry_selectors
+from apps.portal import access as portal_access
 
 from . import ai, scoring, selectors, services, workqueue
+from . import lifecycle as lifecycle_data
 from . import workspace_views as ws
 from .forms import (
     BudgetSettingsForm,
@@ -401,72 +403,100 @@ def cost_delete(request, pk):
     return redirect(reverse("aidata:budget"))
 
 
-# --- Later lifecycle stages: navigation and empty states only (no data is invented) -------------------------
+# --- Later lifecycle stages ----------------------------------------------------------------------------------
+# Delivery and Operations show real client portal records (lifecycle.py, WS-006); incubation shows repeated
+# sectors from real opportunities. Each "needs" row says honestly whether its data is connected or not built.
+
+CONNECTED = "ok"
+NOT_BUILT = "neutral"
+PARTLY = "info"
 
 LIFECYCLE = {
     "delivery": {
         "title": "Delivery",
         "summary": "Contracted work in progress: what is being built, what is blocked, and what the customer has to do.",
         "needs": [
-            (
-                "Project, milestones and deliverables",
-                "The client portal (apps.portal): projects, milestones, deliverables, approvals and updates.",
-                "Planned: the main session connects the portal to opportunities.",
-            ),
-            (
-                "Tasks and test cases",
-                "A task list per milestone, with test cases tied to the acceptance criteria of the approved discovery pack.",
-                "Not built. Acceptance criteria already exist on approved discovery.",
-            ),
-            (
-                "Progress summaries and blockers",
-                "Written project updates and blocked items. AI may draft a summary; a person approves it.",
-                "Not built.",
-            ),
+            {
+                "name": "Project, milestones and deliverables",
+                "source": "The client portal (apps.portal): projects, milestones, deliverables, approvals, change requests and questions.",
+                "status": "Connected",
+                "tone": CONNECTED,
+            },
+            {
+                "name": "Tasks and test cases",
+                "source": "A task list per milestone, with test cases tied to the acceptance criteria of the approved discovery pack.",
+                "status": "Not built. Acceptance criteria already exist on approved discovery.",
+                "tone": NOT_BUILT,
+            },
+            {
+                "name": "Progress summaries and blockers",
+                "source": "Written project updates and blocked items. AI may draft a summary; a person approves it.",
+                "status": "Blockers are shown. Summaries not built.",
+                "tone": PARTLY,
+            },
         ],
-        "next": "Win an opportunity (record the signed scope reference) and connect it to a portal project.",
+        "next": (
+            "Projects come from the client portal. When an opportunity is won, use Link to client portal on the "
+            "opportunity, then Create portal project from proposal (or add a project to the challenge in the client "
+            "portal). Its milestones, blockers, deliverables, change requests and questions then show here."
+        ),
     },
     "operations": {
         "title": "Managed operations",
-        "summary": "Live systems Vitalos runs for customers: incidents, exceptions and the monthly report.",
+        "summary": "Live systems Vitalos runs for customers: the latest reported status of each managed service. Incidents, exceptions and the monthly report come later.",
         "needs": [
-            (
-                "Incident summaries",
-                "Incident records (docs/ai-data/commercial/18-incident-record.md) tied to a customer system.",
-                "Not built. Needs a live managed system to record against.",
-            ),
-            (
-                "Exceptions",
-                "Items a system could not handle and a person must decide, like the demonstrator's review items, from a production system.",
-                "Not built. The demonstrator's review queue is the pattern.",
-            ),
-            (
-                "Monthly report data",
-                "Usage, cost and incident counts per customer (template 14).",
-                "Not built. Needs metering per customer system.",
-            ),
+            {
+                "name": "Managed services and their status",
+                "source": "The client portal: each organisation's managed services and their status reports. A person reports status; no live monitoring is connected.",
+                "status": "Connected",
+                "tone": CONNECTED,
+            },
+            {
+                "name": "Incident summaries",
+                "source": "Incident records (docs/ai-data/commercial/18-incident-record.md) tied to a customer system.",
+                "status": "Not built. Needs a live managed system to record against.",
+                "tone": NOT_BUILT,
+            },
+            {
+                "name": "Exceptions",
+                "source": "Items a system could not handle and a person must decide, like the demonstrator's review items, from a production system.",
+                "status": "Not built. The demonstrator's review queue is the pattern.",
+                "tone": NOT_BUILT,
+            },
+            {
+                "name": "Monthly report data",
+                "source": "Usage, cost and incident counts per customer (template 14).",
+                "status": "Not built. Needs metering per customer system.",
+                "tone": NOT_BUILT,
+            },
         ],
-        "next": "Production systems and the managed-operations contract come first; this stays empty until then.",
+        "next": (
+            "Managed services come from the client portal. Add one on the organisation's page in the client "
+            "portal (Managed services, Add service), then report its status there."
+        ),
     },
     "incubation": {
         "title": "Product incubation",
         "summary": "Turning proven, repeatable customer solutions into products.",
         "needs": [
-            (
-                "Evidence of recurring needs",
-                "Several customer-funded engagements with the same workflow, with the measured result of each.",
-                "Shown below from real opportunities, once there are repeats.",
-            ),
-            (
-                "Reusable components",
-                "A register of components reused across engagements, with reuse level and ownership of the IP.",
-                "Not built (template 16 and VAD-018 describe it).",
-            ),
-            (
-                "Product candidate review",
-                "A go, validate or reject decision backed by the evidence above.",
-                "Needs repeated customer evidence (VAD-019).",
-            ),
+            {
+                "name": "Evidence of recurring needs",
+                "source": "Several customer-funded engagements with the same workflow, with the measured result of each.",
+                "status": "Shown below from real opportunities, once there are repeats.",
+                "tone": NOT_BUILT,
+            },
+            {
+                "name": "Reusable components",
+                "source": "A register of components reused across engagements, with reuse level and ownership of the IP.",
+                "status": "Not built (template 16 and VAD-018 describe it).",
+                "tone": NOT_BUILT,
+            },
+            {
+                "name": "Product candidate review",
+                "source": "A go, validate or reject decision backed by the evidence above.",
+                "status": "Needs repeated customer evidence (VAD-019).",
+                "tone": NOT_BUILT,
+            },
         ],
         "next": "No product decision is made without repeated customer evidence.",
     },
@@ -479,8 +509,15 @@ def lifecycle(request, stage):
     info = LIFECYCLE.get(stage)
     if info is None:
         raise Http404
-    recurring = []
-    if stage == "incubation":
+    context = {"info": info, "section": stage, "today": timezone.localdate()}
+    # Links to the Client portal staff pages are built only for staff who can open them.
+    staff_links = portal_access.staff_can_manage(request.user)
+    if stage == "delivery":
+        context["delivery"] = lifecycle_data.delivery_overview(staff_links=staff_links)
+        context["won"] = Opportunity.objects.filter(stage="won").count()
+    elif stage == "operations":
+        context["operations"] = lifecycle_data.operations_overview(staff_links=staff_links)
+    else:
         from django.db.models import Count
 
         rows = (
@@ -491,14 +528,8 @@ def lifecycle(request, stage):
             .order_by("-n")
         )
         labels = dict(Sector.choices)
-        recurring = [{"label": labels.get(row["sector"], row["sector"]), "count": row["n"]} for row in rows]
-    return render(
-        request,
-        "aidata/lifecycle.html",
-        {
-            "info": info,
-            "section": stage,
-            "recurring": recurring,
-            "won": Opportunity.objects.filter(stage="won").count(),
-        },
-    )
+        context["recurring"] = [
+            {"label": labels.get(row["sector"], row["sector"]), "count": row["n"]} for row in rows
+        ]
+    context["staff_links"] = staff_links
+    return render(request, "aidata/lifecycle.html", context)

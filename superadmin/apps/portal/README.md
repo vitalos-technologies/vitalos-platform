@@ -19,6 +19,7 @@ systems. Architecture, visibility model, auth, AI boundaries and retention: [ADR
 | `push.py`, `views/push.py`                 | Push notifications: keys, endpoint allowlist, RFC 8291 encryption, VAPID, queueing, delivery and retries; the four push routes. |
 | `deliveries.py`                            | Staff delivery status: email and push in one list, summary, detail, Retry now, Cancel, capped bulk retry. Never exposes endpoints, keys or payloads. |
 | `retention.py`                             | Daily deletion of old delivery records and turned-off devices (content tick; a dry run until `RETENTION_ENFORCE=true`). |
+| `staff_selectors.py`                       | Staff-only reads, including `awaiting_decision_versions` (one query; also used by AI & Data › Delivery).   |
 | `views/`                                   | `auth.py` (sign-in, invitation, reset, TOTP), `customer.py` (workspace), `staff.py` (Super Admin tools).   |
 | `urls.py`, `preview_urls.py`, `admin_urls.py` | Customer routes; the same routes for staff preview; staff routes at `/client-portal/`.                  |
 | `management/commands/portal_seed_demo.py`  | Synthetic data for local screenshots. Refuses to run unless DEBUG is on outside production.                |
@@ -77,15 +78,27 @@ POST only, CSRF).
 
 ## Account settings
 
-`settings_base.html` gives Account a section menu beside the content (`_settings_nav.html`); at 52rem or narrower it is
-a sticky, scrollable chip row above the content.
+`settings_base.html` gives Account a section menu beside the content (`_settings_nav.html`), sticky on wide screens;
+at 52rem or narrower it is a scrollable chip row above the content, and `portal.js` scrolls the current chip into view.
+Each section is its own page, so the menu is real links and the view marks the current one with `aria-current="page"`
+(`settings_section`).
 
-- **Profile, Sign-in & security, Notifications on this device and Install the app** are anchors on `/account/`
-  (`#profile`, `#security`, `#device`, `#install`), so the existing URL, redirects and the push and install hooks are
-  unchanged. `portal.js` marks the section in view with `aria-current="page"`; the server marks Profile.
-- **Notification preferences** (`/notifications/preferences/`) and two-step setup (`/account/security/`) render inside
-  the same shell, with their own item marked current.
-- **Staff preview:** the device and install items and cards are hidden, as before.
+| Section                      | URL (portal host; `/portal/…` locally) | View                                   |
+| ---------------------------- | -------------------------------------- | -------------------------------------- |
+| Profile                      | `/account/`                            | `customer.account`                     |
+| Sign-in & security           | `/account/security/`                   | `customer.account_security`            |
+| (two-step set-up)            | `/account/security/two-step/`          | `auth.otp_setup` (`portal:otp_setup`)  |
+| Notifications on this device | `/account/device/`                     | `customer.account_device`              |
+| Notification preferences     | `/notifications/preferences/`          | `customer.notification_preferences`    |
+| Install the app              | `/account/install/`                    | `customer.account_install`             |
+
+- **Two-step set-up** sits under Sign-in & security (its item stays current) and returns there when it is done or
+  cancelled. It moved from `/account/security/`, which is now the section itself, one click from set-up.
+- **Push and install hooks** (`data-push…`, `data-install…`) are only on their own pages. A device removed with the
+  plain form, and the test notification, return to `/account/device/`.
+- **Staff preview:** the device and install items are hidden, and their URLs (and set-up) lead back to the shell.
+- **Old links:** the sections used to be anchors on `/account/` (`#profile`, `#device`, …). `/account/` still opens
+  Profile, so those links still land in the shell.
 
 ## Installable app (Phase 1)
 
@@ -101,7 +114,7 @@ None of the three exists on the admin host or in staff preview. The worker cache
 
 - **Mobile shell:** `templates/portal/_tabbar.html` (bottom tab bar) and the "Mobile app shell" block in `static/portal/portal.css`. It shows at 52rem or narrower and always in the installed app.
 - **Head tags:** `templates/portal/_pwa_head.html`, added by `base.html` and `auth/shell.html` through the `portal_pwa` tag. The tag returns nothing in staff preview, without a request, or when a view passes `pwa_skip`.
-- **Install card:** on the Account page. `portal.js` swaps the manual steps for an Install button, the iOS instruction or "Installed on this device".
+- **Install card:** Account › Install the app (`/account/install/`). `portal.js` swaps the manual steps for an Install button, the iOS instruction or "Installed on this device".
 
 ### Regenerate the icons
 
@@ -148,7 +161,7 @@ the admin host, and a member only ever reaches their own devices (anything else 
 | `PORTAL_PUSH_SUBJECT`            | `mailto:support@vitalos.co.uk`   | VAPID contact (`mailto:` or `https:`).                                                    |
 | `PORTAL_PUSH_DEV_ORIGINS`        | empty                            | Local only: origins of a fake push server (e.g. `http://127.0.0.1:8765`). Production refuses it. |
 
-- **Card and preferences:** "Notifications on this device" on Account (`templates/portal/account.html`; `portal.js`
+- **Card and preferences:** "Notifications on this device" on Account (`/account/device/`, `templates/portal/account_device.html`; `portal.js`
   works out unavailable, iOS not installed, off, on or blocked) with the device list, and push toggles beside email on
   Notification preferences. The browser's permission prompt only follows a click on "Turn on".
 - **What a phone shows:** one generic line per kind from `push.MESSAGES` ("A new question needs your answer"), never a

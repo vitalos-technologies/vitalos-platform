@@ -28,7 +28,7 @@ Modules: `extraction.py` (pure rules: contact details, guided-brief sections, qu
 | `/ai-data/pipeline/new/preview/<id>/` | Brief preview: source beside fields, evidence, missing fields, duplicates (open existing or link), approve |
 | `/ai-data/pipeline/OPP-0001/?tab=workspace\|discovery\|proposal\|details\|activity` | The opportunity workspace; `details` holds the original details, stage and scorecard |
 | `/ai-data/drafts/<id>/{status,retry,cancel,save,review,approve,reject,revise}/`, `export.md`, `export.print` | Task status and draft lifecycle |
-| `/ai-data/lifecycle/{delivery,operations,incubation}/` | Later lifecycle stages: empty states and the data each needs |
+| `/ai-data/lifecycle/{delivery,operations,incubation}/` | Later lifecycle stages. Delivery and Operations read the client portal (`lifecycle.py`, WS-006): counts, needs attention and projects in delivery; managed services with their latest status and a stale marker. Incubation shows repeated sectors. Each lists the data it needs and whether it is connected |
 | `POST /api/ai-data/brief-assist/` | Website brief assist, signed (`assist` scope), feature switch default off |
 
 Rules: AI output is a suggestion, labelled; values without a real quote are dropped; approved drafts are history; a proposal needs approved discovery (also enforced when moving to Proposal); prices come only from Offers or a labelled estimate; nothing is sent. Viewers get 403 as before. Development screenshots: `DJANGO_DEBUG=1 AI_DATA_SIMULATED_PROVIDER=1 python manage.py aidata_seed_demo --with-users` (refuses outside DEBUG; synthetic records labelled `[Synthetic]`). Reliability cases: `python manage.py aidata_eval` (reliability only, not model quality; report in `docs/ai-data/evaluation/workspace-v1/`).

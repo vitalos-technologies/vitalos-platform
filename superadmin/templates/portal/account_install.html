@@ -1,0 +1,18 @@
+{% extends "portal/settings_base.html" %}
+{% load portal_ui %}
+{% block title %}Install the app · Your account · Vitalos client portal{% endblock %}
+{% block settings %}
+  {# Install guidance: the server shows the manual steps; portal.js swaps in an Install button or a status. Never in staff preview (the view sends it to Profile). #}
+  <section class="card install" id="install" data-install aria-labelledby="install-title" data-testid="install-card">
+    <h2 id="install-title">Install the app</h2>
+    <p class="mt-1">Open the portal from your home screen or dock, in its own window. It still needs a connection: nothing about your work is stored on the device.</p>
+    <div data-install-state="manual">
+      <p><strong>iPhone or iPad:</strong> in Safari, tap Share, then Add to Home Screen.</p>
+      <p><strong>Android:</strong> in Chrome, open the menu and choose Install app (or Add to Home screen).</p>
+      <p class="help">On a computer, use Install in the address bar of Chrome or Edge, or File, then Add to Dock in Safari on a Mac.</p>
+    </div>
+    <p data-install-state="ios" hidden>Tap Share, then Add to Home Screen.</p>
+    <p data-install-state="prompt" hidden><button type="button" class="btn" data-install-button>Install</button></p>
+    <p data-install-state="installed" hidden><strong>Installed on this device.</strong></p>
+  </section>
+{% endblock %}

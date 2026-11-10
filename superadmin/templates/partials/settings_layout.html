@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{# Section shell shared by Settings and Account & security. Two columns from lg: a sticky section menu (real links, one URL per section, aria-current="page" on the current one) and the selected section alone beside it. Below lg (phones, and tablets where the sidebar takes 16rem) the menu is a horizontal, scrollable row above the panel. Pages fill shell_heading, shell_menu and settings_panel. #}
+{% block content %}
+  {% block shell_heading %}{% endblock %}
+  <div id="settings-region" class="settings-layout mt-4"{% block shell_region_attrs %}{% endblock %}>
+    <nav aria-label="{% block shell_menu_label %}Settings sections{% endblock %}" class="settings-menu" data-testid="settings-menu">
+      {% block shell_menu %}{% endblock %}
+    </nav>
+    <div class="min-w-0" data-testid="settings-panel">
+      {% block settings_panel %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

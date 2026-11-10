@@ -91,6 +91,8 @@ _Last updated: 29 Oct 2026. The connected experience (marketing redesign, guided
 
 _Workspace update, 28 Oct 2026:_ the admin is now an AI-assisted delivery workspace (ADR-055): paste an enquiry, review an evidence-linked brief, discovery pack, proposal draft with human approval, assistant, durable AI tasks, signed website brief-assist endpoint (off by default), shared tokens. Live provider still off; no live model-quality evidence. Next (owner): website client signs `assist`, key and switches, live evaluation, retention schedule. Tasks WS-001 to WS-007 in TASKS.md.
 
+_Delivery and Operations, 2 Nov 2026 (W17, WS-006):_ AI & Data › Delivery and Operations now show client portal records instead of empty states: counts, needs attention and projects in delivery; managed services with their latest status and the portal's stale rule. They are read-only and staff-only, and show no internal notes. Tasks, test cases, progress summaries, incidents, exceptions and the monthly report are still not built. VAD-010 is Done (AC-14 run 40972825725, below).
+
 - #104 merged as `162f58e` (squash-merged after every check passed on its head).
 - **Website** (Vercel deployed from the merge; the Git integration is reconnected):
   - `vitalos.co.uk/pay` and `/pay/thank-you` answer 200 and are `noindex`.

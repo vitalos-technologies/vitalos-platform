@@ -1,8 +1,8 @@
 {% extends "portal/settings_base.html" %}
 {% load portal_ui %}
-{% block title %}Account · Vitalos client portal{% endblock %}
+{% block title %}Profile · Your account · Vitalos client portal{% endblock %}
 {% block settings %}
-  <section class="card" id="profile" aria-labelledby="profile-title" data-testid="settings-profile">
+  <section class="card" aria-labelledby="profile-title" data-testid="settings-profile">
     <h2 id="profile-title">Profile</h2>
     <p class="settings__intro">Who you are in the portal. Vitalos manages your role; ask them if it needs to change.</p>
     <dl class="kv settings__kv">
@@ -13,96 +13,4 @@
     </dl>
     <p class="help mt-1">{% if member.role == "viewer" %}Read-only.{% elif member.role == "contributor" %}You can comment, answer questions, upload files and request changes.{% elif member.role == "approver" %}You can also approve, or request changes to, a specific deliverable version.{% else %}You can also record contractual acceptance as an authorised signatory.{% endif %}</p>
   </section>
-
-  <section class="card" id="security" aria-labelledby="security-title" data-testid="settings-security">
-    <h2 id="security-title">Sign-in &amp; security</h2>
-    <ul class="list settings__rows">
-      <li class="settings__row">
-        <div>
-          <h3 class="settings__row-title">Two-step sign-in</h3>
-          <p class="help">After your password, enter a 6-digit code from an authenticator app.</p>
-        </div>
-        <div class="settings__row-action">
-          {% if mfa %}<span class="badge badge--ok">On</span>{% else %}<span class="badge">Off</span>{% endif %}
-          {% if not mfa and not preview %}<a class="btn btn--secondary btn--sm" href="{% purl 'otp_setup' %}">Turn on</a>{% endif %}
-        </div>
-      </li>
-      <li class="settings__row">
-        <div>
-          <h3 class="settings__row-title">Password</h3>
-          <p class="help">To change your password, use "Forgot your password?" on the sign-in page.</p>
-        </div>
-      </li>
-    </ul>
-  </section>
-
-  {% if push %}
-    {# Push notifications (ADR-056, Phase 2). The server shows what it knows; portal.js swaps in this device's state. #}
-    {# The permission request only ever runs from the "Turn on" button. #}
-    <section class="card push" id="device" data-push aria-labelledby="push-title" data-testid="push-card"{% if push.available %} data-push-key="{{ push.public_key }}" data-push-subscribe="{% purl 'push_subscribe' %}" data-push-unsubscribe="{% purl 'push_unsubscribe' %}" data-push-test="{% purl 'push_test' %}" data-push-devices="{{ push.digests }}"{% endif %}>
-      <h2 id="push-title">Notifications on this device</h2>
-      <p class="mt-1">Get a notification when something needs you. It says only what kind of thing happened, for example "A new question needs your answer", never names or project details. Signing out turns notifications off on this device.</p>
-      {% if not push.available %}
-        <p class="notice" data-push-state="unavailable">Notifications on this device aren't available yet. You'll still get email, and everything appears under Notifications.</p>
-      {% else %}
-        <p class="notice" data-push-state="unsupported">This browser can't show notifications from the portal, or JavaScript is turned off. You'll still get email, and everything appears under Notifications.</p>
-        <div data-push-state="ios" hidden>
-          <p><strong>Install the app first:</strong> tap Share, then Add to Home Screen, then turn notifications on from the app.</p>
-          <p class="help">On iPhone and iPad, notifications work only in the installed app (iOS 16.4 or later).</p>
-        </div>
-        <div data-push-state="off" hidden>
-          <p><button type="button" class="btn" data-push-on>Turn on notifications</button></p>
-          <p class="help">Your browser will ask for permission.</p>
-        </div>
-        <div data-push-state="on" hidden>
-          <p><span class="badge badge--ok">On</span> <strong>Notifications are on for this device.</strong></p>
-          <div class="row push__actions">
-            <button type="button" class="btn btn--secondary" data-push-test-button>Send a test notification</button>
-            <button type="button" class="btn btn--ghost" data-push-off>Turn off</button>
-          </div>
-        </div>
-        <div data-push-state="blocked" hidden>
-          <p><span class="badge badge--warn">Blocked</span> <strong>Notifications are blocked for this site.</strong></p>
-          <p>To allow them, open your browser's settings for this site (the icon beside the address), set Notifications to Allow, then reload this page.</p>
-          <p class="help">In the installed app on Android: App info, then Notifications. On iPhone or iPad: Settings, Notifications, then Vitalos.</p>
-        </div>
-        <p class="push__status" role="status" aria-live="polite" data-push-status></p>
-      {% endif %}
-      <p class="help mt-1">Choose which kinds of notification you get in <a href="{% purl 'notification_preferences' %}">Notification preferences</a>.</p>
-      {% if push.devices %}
-        <h3 class="push__heading">Devices with notifications on</h3>
-        <ul class="list push__devices" data-testid="push-devices">
-          {% for device in push.devices %}
-            <li class="push__device" data-push-device="{{ device.digest }}">
-              <div class="push__device-text">
-                <strong>{{ device.label }}</strong> <span class="badge badge--info" data-push-this hidden>This device</span>
-                <span class="help push__device-date">Added {{ device.created_at|date:"j M Y" }}</span>
-              </div>
-              <form method="post" action="{% purl 'push_unsubscribe' %}">
-                {% csrf_token %}
-                <input type="hidden" name="subscription" value="{{ device.pk }}">
-                <button type="submit" class="btn btn--secondary btn--sm">Remove<span class="sr-only"> {{ device.label }}, added {{ device.created_at|date:"j M Y" }}</span></button>
-              </form>
-            </li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    </section>
-  {% endif %}
-
-  {% if not preview %}
-    {# Install guidance: the server shows the manual steps; portal.js swaps in an Install button or a status. #}
-    <section class="card install" id="install" data-install aria-labelledby="install-title" data-testid="install-card">
-      <h2 id="install-title">Install the app</h2>
-      <p class="mt-1">Open the portal from your home screen or dock, in its own window. It still needs a connection: nothing about your work is stored on the device.</p>
-      <div data-install-state="manual">
-        <p><strong>iPhone or iPad:</strong> in Safari, tap Share, then Add to Home Screen.</p>
-        <p><strong>Android:</strong> in Chrome, open the menu and choose Install app (or Add to Home screen).</p>
-        <p class="help">On a computer, use Install in the address bar of Chrome or Edge, or File, then Add to Dock in Safari on a Mac.</p>
-      </div>
-      <p data-install-state="ios" hidden>Tap Share, then Add to Home Screen.</p>
-      <p data-install-state="prompt" hidden><button type="button" class="btn" data-install-button>Install</button></p>
-      <p data-install-state="installed" hidden><strong>Installed on this device.</strong></p>
-    </section>
-  {% endif %}
 {% endblock %}

@@ -1,0 +1,17 @@
+{% extends "accounts/_shell.html" %}
+{% block section_title %}Profile{% endblock %}
+{% block settings_panel %}
+  <section class="card max-w-3xl p-6" aria-labelledby="account-profile-title" data-testid="account-profile">
+    <h2 id="account-profile-title" class="font-semibold">Profile</h2>
+    <p class="muted mb-4 text-sm">Your name as other staff see it in the Super Admin.</p>
+    <dl class="mb-6 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
+      <dt class="muted">Email</dt><dd class="break-all">{{ user.email }}</dd>
+      <dt class="muted">Role</dt><dd>{{ role|default:"No role assigned" }}</dd>
+    </dl>
+    <form method="post" action="{% url 'accounts:account' %}" class="max-w-md" novalidate>
+      {% csrf_token %}<input type="hidden" name="action" value="profile">
+      {% include "partials/form_fields.html" with form=profile_form %}
+      <button type="submit" class="btn btn-primary mt-4">Save profile</button>
+    </form>
+  </section>
+{% endblock %}

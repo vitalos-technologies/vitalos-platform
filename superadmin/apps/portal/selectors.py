@@ -342,12 +342,21 @@ def latest_report(service):
     return service.reports.filter(published_at__isnull=False).order_by("-reported_at", "-id").first()
 
 
+def stale_before(now=None):
+    """The one stale rule for status reports: a report made before this moment is older than
+    ``PORTAL_STATUS_STALE_HOURS`` and is shown as stale (customer service cards and the staff Operations page)."""
+    return (now or timezone.now()) - dt.timedelta(hours=settings.PORTAL_STATUS_STALE_HOURS)
+
+
+def is_stale(reported_at, now=None) -> bool:
+    return reported_at < stale_before(now)
+
+
 def report_freshness(report) -> dict:
     """Source, last-updated and stale flag. A manual report older than PORTAL_STATUS_STALE_HOURS is stale."""
     if report is None:
         return {"has_report": False}
-    age = timezone.now() - report.reported_at
-    stale = age > dt.timedelta(hours=settings.PORTAL_STATUS_STALE_HOURS)
+    stale = is_stale(report.reported_at)
     return {
         "has_report": True,
         "stale": stale,
