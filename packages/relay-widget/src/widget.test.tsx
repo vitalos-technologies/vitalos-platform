@@ -1,6 +1,7 @@
-import { render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseFrame } from "./api";
+import { RelayLauncher } from "./launcher";
 import { Markdown } from "./markdown";
 import {
   clearConversation,
@@ -106,5 +107,29 @@ describe("storage", () => {
         lastSeenAt: "",
       }),
     ).not.toThrow();
+  });
+});
+
+describe("RelayLauncher accessible name (WCAG 2.5.3 Label in Name)", () => {
+  afterEach(() => {
+    cleanup();
+    window.localStorage.clear();
+  });
+
+  it("starts with the visible label while it shows (first visit)", async () => {
+    render(<RelayLauncher symbolSrc="/brand/vitalos-symbol.png" privacyUrl="/legal/privacy" />);
+    const launcher = await screen.findByRole("button", {
+      name: "Ask Vitalos. Open chat with Relay, the Vitalos assistant",
+    });
+    expect(launcher.textContent).toBe("Ask Vitalos");
+  });
+
+  it("is the plain action once the label is gone (returning visitor)", () => {
+    markSeen();
+    render(<RelayLauncher symbolSrc="/brand/vitalos-symbol.png" privacyUrl="/legal/privacy" />);
+    const launcher = screen.getByRole("button", {
+      name: "Open chat with Relay, the Vitalos assistant",
+    });
+    expect(launcher.textContent).toBe("");
   });
 });

@@ -23,6 +23,10 @@ test.describe("Relay launcher and panel", () => {
     });
     await expect(launcher).toBeVisible();
     await expect(launcher).toHaveAttribute("aria-expanded", "false");
+    // WCAG 2.5.3 Label in Name: on a first visit the name starts with the "Ask Vitalos" label.
+    await expect(launcher).toHaveAccessibleName(
+      "Ask Vitalos. Open chat with Relay, the Vitalos assistant",
+    );
     await launcher.click();
     await expect(page.getByText("Ask Vitalos.")).toBeVisible();
     await expect(page.getByLabel("Message Relay")).toBeFocused();
@@ -31,6 +35,8 @@ test.describe("Relay launcher and panel", () => {
     await page.keyboard.press("Escape");
     await expect(page.locator("#relay-panel")).toBeHidden();
     await expect(launcher).toBeFocused();
+    // The label is gone after the first open, and the name drops it too.
+    await expect(launcher).toHaveAccessibleName("Open chat with Relay, the Vitalos assistant");
   });
 
   test("no Relay request is made before the visitor interacts", async ({ page }) => {
