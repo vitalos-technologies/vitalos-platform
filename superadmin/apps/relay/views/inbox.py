@@ -187,7 +187,7 @@ def join(request, conversation_id):
         request,
         conversation_id,
         lambda cid: services.join(request.user, cid, request=request),
-        "You joined. Relay AI is paused for this conversation.",
+        "You joined. The AI is paused for this conversation.",
     )
 
 
@@ -199,7 +199,7 @@ def assign(request, conversation_id):
     if assignee is None:
         response = HttpResponse(status=200)
         response["HX-Reswap"] = "none"
-        return toast(response, "That person cannot be assigned Relay conversations.")
+        return toast(response, "That person cannot be assigned site assistant conversations.")
     label = assignee.full_name or assignee.email
     return _act(
         request,
@@ -216,7 +216,7 @@ def hand_back(request, conversation_id):
         request,
         conversation_id,
         lambda cid: services.hand_back(request.user, cid, request=request),
-        "Handed back to Relay AI.",
+        "Handed back to the AI.",
     )
 
 

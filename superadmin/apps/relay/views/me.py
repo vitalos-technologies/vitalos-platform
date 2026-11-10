@@ -146,7 +146,10 @@ def availability(request):
         return HttpResponse(status=204)
     response = render(request, "relay/_availability.html", {"relay_available": available})
     return toast(
-        response, "You are available for Relay." if available else "You are not available for Relay."
+        response,
+        "You are available for the site assistant."
+        if available
+        else "You are not available for the site assistant.",
     )
 
 

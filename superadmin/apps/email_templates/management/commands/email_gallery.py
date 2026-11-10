@@ -252,7 +252,7 @@ def _code_entries() -> list[dict]:
         entries.append(
             _entry(
                 f"relay-{kind_name.replace('_', '-')}",
-                f"Relay alert: {kind_name.replace('_', ' ')}",
+                f"Site assistant (legacy) alert: {kind_name.replace('_', ' ')}",
                 "relay",
                 alert.subject,
                 render(alert.document),

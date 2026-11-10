@@ -3,7 +3,7 @@
   <summary class="relative flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-[2px] border border-line bg-white text-midnight dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 [&::-webkit-details-marker]:hidden"
            hx-get="{% url 'relay:notifications' %}" hx-trigger="click" hx-target="#relay-bell-menu" hx-swap="innerHTML" data-testid="relay-bell">
     {% icon "bell" "h-[18px] w-[18px]" %}
-    <span class="sr-only">Relay notifications</span>
+    <span class="sr-only">Site assistant notifications</span>
     {% include "relay/_bell_count.html" %}
   </summary>
   <div id="relay-bell-menu" class="relay-menu w-[min(22rem,calc(100vw-2rem))]">

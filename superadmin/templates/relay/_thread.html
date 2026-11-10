@@ -38,7 +38,7 @@
         <div class="relay-menu w-72 py-1">
           {% if thread.can_hand_back %}
             <form method="post" action="{% url 'relay:handback' thread.id %}" hx-post="{% url 'relay:handback' thread.id %}" hx-target="#relay-thread" hx-swap="innerHTML">
-              {% csrf_token %}<button type="submit" class="relay-menu-item">Hand back to Relay</button>
+              {% csrf_token %}<button type="submit" class="relay-menu-item">Hand back to the AI</button>
             </form>
           {% endif %}
           <button type="button" class="relay-menu-item" data-relay-transcript="{% url 'relay:transcript' thread.id %}">Copy transcript</button>
@@ -78,7 +78,7 @@
             {{ reply_form.client_message_id }}
             <label for="relay-reply" class="sr-only">Reply to {{ thread.name }}</label>
             <textarea id="relay-reply" name="text" rows="3" maxlength="4000" required class="relay-input resize-y leading-5" data-relay-typing
-                      placeholder="{% if thread.joined %}Reply as {{ admin_first_name }}.{% else %}Reply as {{ admin_first_name }}. Joining pauses Relay AI for this conversation.{% endif %}"></textarea>
+                      placeholder="{% if thread.joined %}Reply as {{ admin_first_name }}.{% else %}Reply as {{ admin_first_name }}. Joining pauses the AI for this conversation.{% endif %}"></textarea>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
               {% if thread.has_email %}
                 <span class="relay-muted flex items-center gap-2 text-[13px]">

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static ui %}
-{% block title %}{% block relay_title %}Relay{% endblock %} · Vitalos Super Admin{% endblock %}
+{% block title %}{% block relay_title %}Site assistant (legacy){% endblock %} · Vitalos Super Admin{% endblock %}
 {% block main_width %}max-w-none{% endblock %}
 {% block main_padding %}p-0{% endblock %}
 {% block scripts %}<script src="{% static 'js/relay.js' %}" nonce="{{ csp_nonce }}" defer></script>{% endblock %}
@@ -8,8 +8,8 @@
   {{ relay_config|json_script:"relay-config" }}
   <div class="flex flex-col {% block relay_frame %}{% endblock %}" data-relay>
     <div class="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line bg-white px-4 py-4 sm:px-6 dark:border-slate-800 dark:bg-slate-900">
-      <h1 class="font-display text-2xl font-bold tracking-[-0.01em]">Relay<span class="text-cobalt-600 dark:text-cobalt-300">.</span></h1>
-      <nav aria-label="Relay sections" class="order-last -mx-3 flex w-full min-w-0 gap-1 overflow-x-auto md:order-none md:mx-0 md:w-auto md:flex-1">
+      <h1 class="font-display text-2xl font-bold tracking-[-0.01em]">Site assistant (legacy)<span class="text-cobalt-600 dark:text-cobalt-300">.</span></h1>
+      <nav aria-label="Site assistant sections" class="order-last -mx-3 flex w-full min-w-0 gap-1 overflow-x-auto md:order-none md:mx-0 md:w-auto md:flex-1">
         {% for key, label, url in relay_sections %}
           {% if key != "settings" or relay_can_manage %}
             <a href="{{ url }}" class="relay-subnav-link" {% if key == relay_section or key == "settings" and relay_section == "prefs" %}aria-current="page"{% endif %} data-relay-nav="{{ key }}">{{ label }}</a>

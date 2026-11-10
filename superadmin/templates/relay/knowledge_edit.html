@@ -1,12 +1,12 @@
 {% extends "relay/_shell.html" %}
-{% block relay_title %}{% if is_new %}New entry{% else %}{{ document.title }}{% endif %} · Relay knowledge{% endblock %}
+{% block relay_title %}{% if is_new %}New entry{% else %}{{ document.title }}{% endif %} · Knowledge · Site assistant (legacy){% endblock %}
 {% block relay_content %}
   <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-7 sm:px-6">
     <div>
       <a href="{% url 'relay:knowledge' %}" class="relay-link text-[13px]">Back to Knowledge</a>
       <h2 class="mt-2 font-display text-[28px] leading-tight font-bold tracking-[-0.01em]">{% if is_new %}New entry{% else %}{{ document.title }}{% endif %}<span class="text-cobalt-600 dark:text-cobalt-300">.</span></h2>
       {% if is_new %}
-        <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">A team answer starts as a draft. Relay uses it only after a super admin publishes it.</p>
+        <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">A team answer starts as a draft. The site assistant uses it only after a super admin publishes it.</p>
       {% else %}
         <p class="relay-mono relay-muted mt-2">{{ source_label }} · {{ document.chunks|default:0 }} chunk{{ document.chunks|pluralize }}{% if updated %} · updated {{ updated|date:"j M Y, H:i" }}{% endif %} · <span class="{% if status_tone == 'mineral' %}relay-mineral{% endif %}">{{ status_label }}</span></p>
       {% endif %}

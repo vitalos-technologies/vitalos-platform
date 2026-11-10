@@ -4,6 +4,8 @@ Relay is the chat assistant on vitalos.co.uk. It answers questions from publishe
 
 > **Superseded on the public site while the Askbridge key is set.** When `ASKBRIDGE_SITE_KEY` is set, vitalos.co.uk shows the Askbridge widget and does not render `RelayLauncher`, whatever `RELAY_ENABLED` says. Unset the key and redeploy to bring Relay back. The Relay packages and routes stay in the repo. See ADR-045.
 
+> **Naming (10 Nov 2026).** "Relay" now means Vitalos's social media publishing product (relay.vitalos.co.uk), which is on the Products pages and in the Super Admin's Product Pipeline. This chat assistant is labelled **"Site assistant (legacy)"** in the Super Admin. Only those visible labels changed: the package names (`relay-core`, `relay-knowledge`, `relay-widget`), routes (`/api/relay/*`, `/relay/...`), settings (`RELAY_*`), permissions, tables and data keep "relay". The visitor-facing widget, its system prompt and the legal pages still say "Relay" until the owner decides otherwise. See the ADR-044 addendum.
+
 Design documents:
 
 - Decisions: `DECISIONS.md`.

@@ -26,7 +26,7 @@ TAG_LABELS = {
     "NOT_HELPFUL": "NOT HELPFUL",
     "NOT_IN_KNOWLEDGE": "NOT IN KNOWLEDGE",
     "ASKED_FOR_A_PERSON": "ASKED FOR A PERSON",
-    "MODEL_FLAG": "FLAGGED BY RELAY",
+    "MODEL_FLAG": "FLAGGED BY AI",
 }
 
 
@@ -42,7 +42,7 @@ TRIGGERS = {
     "not_helpful": Trigger(
         "NOT HELPFUL",
         "Marked an answer not helpful",
-        "{first} marked a Relay answer as not helpful and asked to talk to a person.",
+        "{first} marked an AI answer as not helpful and asked to talk to a person.",
         "Not helpful, then asked for a person",
     ),
     "explicit_request": Trigger(
@@ -53,15 +53,15 @@ TRIGGERS = {
     ),
     "low_confidence": Trigger(
         "NOT IN KNOWLEDGE",
-        "Relay had no answer in knowledge",
-        "Relay could not answer from published knowledge.",
+        "The site assistant had no answer in knowledge",
+        "The site assistant could not answer from published knowledge.",
         "Not in published knowledge",
     ),
     "model_flag": Trigger(
-        "FLAGGED BY RELAY",
-        "Relay flagged the conversation for a person",
-        "Relay flagged the conversation for a person.",
-        "Flagged by Relay",
+        "FLAGGED BY AI",
+        "The AI flagged the conversation for a person",
+        "The AI flagged the conversation for a person.",
+        "Flagged by the AI",
     ),
     "admin_initiated": Trigger(
         "STARTED BY STAFF",

@@ -170,8 +170,8 @@ def _build_alert(event_type: str, data: dict) -> Alert | None:
         return Alert(
             kind,
             everyone,
-            "Relay had no answer in knowledge",
-            f"Question on {page}" if page else "A question Relay could not answer",
+            "The site assistant had no answer in knowledge",
+            f"Question on {page}" if page else "A question the site assistant could not answer",
             _thread_url(conversation_id),
             conversation_id,
             _toast_meta("NOT IN KNOWLEDGE", page, _quote(data.get("question"))),
@@ -180,7 +180,7 @@ def _build_alert(event_type: str, data: dict) -> Alert | None:
         return Alert(
             kind,
             list(selectors.superadmins()),
-            "Relay reached its daily token cap",
+            "The site assistant reached its daily token cap",
             f"{data.get('tokensUsed', 0):,} of {data.get('cap', 0):,} tokens used",
             "/relay/settings/",
             None,
@@ -196,7 +196,7 @@ def _build_alert(event_type: str, data: dict) -> Alert | None:
             None,
             _toast_meta("MASTER FAQ", ""),
         )
-    return Alert(kind, everyone, "Relay daily digest", "", "/relay/insights/", None, {})
+    return Alert(kind, everyone, "Site assistant daily digest", "", "/relay/insights/", None, {})
 
 
 def _log(alert: Alert, channel: str, user, now: datetime) -> RelayAlertLog | None:

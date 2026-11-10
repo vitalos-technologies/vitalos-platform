@@ -8,8 +8,8 @@
         <span class="shrink-0 font-mono text-xs {% if chunk.above %}relay-mineral{% else %}relay-muted{% endif %}">{{ chunk.confidence|floatformat:2 }}{% if chunk.above %}<span class="sr-only"> (above the threshold)</span>{% endif %}</span>
       </li>
     {% empty %}
-      <li class="relay-muted border-t border-line py-2 text-[13px] dark:border-slate-800">Nothing in published knowledge matches. Relay would offer a person.</li>
+      <li class="relay-muted border-t border-line py-2 text-[13px] dark:border-slate-800">Nothing in published knowledge matches. The site assistant would offer a person.</li>
     {% endfor %}
   </ul>
-  {% if threshold is not None %}<p class="relay-mono relay-muted mt-2">Answer threshold {{ threshold }} · below it Relay offers a person</p>{% endif %}
+  {% if threshold is not None %}<p class="relay-mono relay-muted mt-2">Answer threshold {{ threshold }} · below it the site assistant offers a person</p>{% endif %}
 {% endif %}

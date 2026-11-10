@@ -1,11 +1,11 @@
 {% extends "relay/_shell.html" %}
-{% block relay_title %}Relay insights{% endblock %}
+{% block relay_title %}Insights · Site assistant (legacy){% endblock %}
 {% block relay_content %}
   <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-7 sm:px-6">
     <div class="flex flex-wrap items-end gap-4">
       <div class="min-w-0 flex-1">
         <h2 class="font-display text-[28px] leading-tight font-bold tracking-[-0.01em]">Insights<span class="text-cobalt-600 dark:text-cobalt-300">.</span></h2>
-        <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">How Relay did over the last {{ days }} days.</p>
+        <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">How the site assistant did over the last {{ days }} days.</p>
       </div>
       <nav aria-label="Period" class="flex gap-1">
         {% for period in periods %}

@@ -24,9 +24,11 @@ SIGN_IN_NOTICE = (
     "The link opens the conversation after you sign in to the super admin dashboard. "
     "It never signs you in on its own."
 )
-LIST_NOTICE = "You get this because you are on the Relay notification list. Manage notifications: {url}"
-PER_CONVERSATION = "VITALOS RELAY · ONE EMAIL PER CONVERSATION EVERY 10 MINUTES AT MOST"
-PER_DAY = "VITALOS RELAY · ONE EMAIL A DAY AT MOST"
+LIST_NOTICE = (
+    "You get this because you are on the site assistant notification list. Manage notifications: {url}"
+)
+PER_CONVERSATION = "VITALOS SITE ASSISTANT · ONE EMAIL PER CONVERSATION EVERY 10 MINUTES AT MOST"
+PER_DAY = "VITALOS SITE ASSISTANT · ONE EMAIL A DAY AT MOST"
 HEADERS = {"Auto-Submitted": "auto-generated", "X-Auto-Response-Suppress": "All"}
 
 
@@ -72,7 +74,7 @@ def _document(subject: str, preheader: str, blocks: list[dict], limit_line: str 
     return {
         "title": subject,
         "preheader": preheader,
-        "headerLabel": "Relay",
+        "headerLabel": "Site assistant",
         "blocks": blocks,
         "footer": _footer(limit_line),
     }
@@ -82,14 +84,14 @@ def handoff(data: dict) -> AlertEmail:
     name = data.get("displayName") or "A visitor"
     reason = presenters.trigger(data.get("trigger"))
     sentence = reason.sentence.format(first=presenters.first_name(name))
-    subject = f"Relay: {name} needs a person"
+    subject = f"Site assistant (legacy): {name} needs a person"
     rows = [
         {"label": "Trigger", "value": reason.label},
         {"label": "Page", "value": data.get("pagePath") or "", "code": True, "missing": "Not recorded"},
         {"label": "Waiting since", "value": presenters.long_date(data.get("requestedAt"))},
     ]
     blocks = _conversation_blocks(
-        "Relay · Needs a person",
+        "Site assistant · Needs a person",
         f"{name} is waiting for a reply.",
         sentence,
         data.get("lastVisitorMessage"),
@@ -103,7 +105,7 @@ def reminder(data: dict) -> AlertEmail:
     name = data.get("displayName") or "A visitor"
     minutes = int(data.get("minutesWaiting") or 0)
     nth = data.get("nth") or 1
-    subject = f"Relay: {name} is still waiting"
+    subject = f"Site assistant (legacy): {name} is still waiting"
     sentence = (
         f"No one has joined after {minutes} minutes. This is reminder {nth}."
         if minutes
@@ -115,7 +117,7 @@ def reminder(data: dict) -> AlertEmail:
         {"label": "Waiting since", "value": presenters.long_date(data.get("requestedAt"))},
     ]
     blocks = _conversation_blocks(
-        "Relay · Still waiting",
+        "Site assistant · Still waiting",
         f"{name} is still waiting for a reply.",
         sentence,
         data.get("lastVisitorMessage"),
@@ -128,7 +130,7 @@ def reminder(data: dict) -> AlertEmail:
 def visitor_replied(data: dict, *, assigned: bool) -> AlertEmail:
     name = data.get("displayName") or "A visitor"
     first = presenters.first_name(name)
-    subject = f"Relay: {name} replied"
+    subject = f"Site assistant (legacy): {name} replied"
     sentence = (
         f"{first} sent a new message in your conversation."
         if assigned
@@ -136,7 +138,7 @@ def visitor_replied(data: dict, *, assigned: bool) -> AlertEmail:
     )
     rows = [{"label": "Page", "value": data.get("pagePath") or "", "code": True, "missing": "Not recorded"}]
     blocks = _conversation_blocks(
-        "Relay · Visitor replied",
+        "Site assistant · Visitor replied",
         f"{name} replied.",
         sentence,
         data.get("lastVisitorMessage"),
@@ -147,12 +149,12 @@ def visitor_replied(data: dict, *, assigned: bool) -> AlertEmail:
 
 
 def no_answer(data: dict) -> AlertEmail:
-    subject = "Relay: a question had no answer"
-    sentence = "Relay could not answer from published knowledge and did not hand off."
+    subject = "Site assistant (legacy): a question had no answer"
+    sentence = "The site assistant could not answer from published knowledge and did not hand off."
     rows = [{"label": "Page", "value": data.get("pagePath") or "", "code": True, "missing": "Not recorded"}]
     blocks = _conversation_blocks(
-        "Relay · No answer",
-        "Relay could not answer a question.",
+        "Site assistant · No answer",
+        "The site assistant could not answer a question.",
         sentence,
         data.get("question"),
         rows,
@@ -169,11 +171,11 @@ def _percent(value) -> str:
 
 
 def digest(data: dict) -> AlertEmail:
-    subject = "Relay daily digest"
+    subject = "Site assistant (legacy) daily digest"
     yesterday = data.get("yesterday") or {}
     rows = [
         {"label": "Conversations", "value": str(yesterday.get("conversations", 0))},
-        {"label": "Answered by Relay AI", "value": str(yesterday.get("aiResolved", 0))},
+        {"label": "Answered by the AI", "value": str(yesterday.get("aiResolved", 0))},
         {"label": "Hand-offs", "value": str(yesterday.get("handoffs", 0))},
         {
             "label": "Hand-off rate",
@@ -189,11 +191,11 @@ def digest(data: dict) -> AlertEmail:
     ]
     gaps = [g for g in data.get("topGaps") or [] if isinstance(g, dict) and g.get("question")]
     blocks = [
-        {"type": "section", "text": "Relay · Daily digest"},
-        {"type": "heading", "text": "Yesterday on Relay."},
+        {"type": "section", "text": "Site assistant · Daily digest"},
+        {"type": "heading", "text": "Yesterday on the site assistant."},
         {
             "type": "text",
-            "text": "A summary of yesterday's conversations and the questions Relay could not answer.",
+            "text": "A summary of yesterday's conversations and the questions the site assistant could not answer.",
             "tone": "muted",
         },
         {"type": "details", "rows": rows},
@@ -203,19 +205,23 @@ def digest(data: dict) -> AlertEmail:
         blocks += [{"type": "section", "text": "Top gaps"}, {"type": "text", "text": lines}]
     url = settings.APP_BASE_URL + reverse("relay:inbox")
     blocks += [
-        {"type": "button", "label": "Open Relay", "url": url},
+        {"type": "button", "label": "Open the site assistant", "url": url},
         {"type": "text", "text": f"Or paste this link: {url}", "tone": "muted"},
     ]
-    return AlertEmail(subject, _document(subject, "Yesterday on Relay.", blocks, PER_DAY))
+    return AlertEmail(subject, _document(subject, "Yesterday on the site assistant.", blocks, PER_DAY))
 
 
 def token_cap(data: dict) -> AlertEmail:
-    subject = "Relay: daily token cap reached"
+    subject = "Site assistant (legacy): daily token cap reached"
     url = settings.APP_BASE_URL + reverse("relay:settings")
     blocks = [
-        {"type": "section", "text": "Relay · Token cap"},
-        {"type": "heading", "text": "Relay reached its daily token cap."},
-        {"type": "text", "text": "Check the cap and today's use in Relay settings.", "tone": "muted"},
+        {"type": "section", "text": "Site assistant · Token cap"},
+        {"type": "heading", "text": "The site assistant reached its daily token cap."},
+        {
+            "type": "text",
+            "text": "Check the cap and today's use in site assistant settings.",
+            "tone": "muted",
+        },
         {
             "type": "details",
             "rows": [
@@ -224,20 +230,22 @@ def token_cap(data: dict) -> AlertEmail:
                 {"label": "Daily cap", "value": f"{data.get('cap', 0):,}"},
             ],
         },
-        {"type": "button", "label": "Open Relay settings", "url": url},
+        {"type": "button", "label": "Open site assistant settings", "url": url},
     ]
-    return AlertEmail(subject, _document(subject, "Relay reached its daily token cap.", blocks, PER_DAY))
+    return AlertEmail(
+        subject, _document(subject, "The site assistant reached its daily token cap.", blocks, PER_DAY)
+    )
 
 
 def faq_attention(data: dict) -> AlertEmail:
-    subject = "Relay: Master FAQ sync needs attention"
+    subject = "Site assistant (legacy): Master FAQ sync needs attention"
     url = settings.APP_BASE_URL + reverse("relay:knowledge") + "?view=held"
     blocks = [
-        {"type": "section", "text": "Relay · Master FAQ"},
+        {"type": "section", "text": "Site assistant · Master FAQ"},
         {"type": "heading", "text": "The Master FAQ sync needs attention."},
         {
             "type": "text",
-            "text": "Held entries are not used by Relay until they are fixed in Notion.",
+            "text": "Held entries are not used by the site assistant until they are fixed in Notion.",
             "tone": "muted",
         },
         {

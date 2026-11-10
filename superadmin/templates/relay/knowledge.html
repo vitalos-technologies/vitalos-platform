@@ -1,11 +1,11 @@
 {% extends "relay/_shell.html" %}
-{% block relay_title %}Relay knowledge{% endblock %}
+{% block relay_title %}Knowledge · Site assistant (legacy){% endblock %}
 {% block relay_content %}
   <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-7 sm:px-6">
     <div class="flex flex-wrap items-end gap-4">
       <div class="min-w-0 flex-[1_1_22rem]">
         <h2 class="font-display text-[28px] leading-tight font-bold tracking-[-0.01em]">Knowledge<span class="text-cobalt-600 dark:text-cobalt-300">.</span></h2>
-        <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">What Relay may answer from. Only published entries are searched; anything else gets “I don't know” and an offer of a person.</p>
+        <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">What the site assistant may answer from. Only published entries are searched; anything else gets “I don't know” and an offer of a person.</p>
       </div>
       {% if relay_can_manage %}
         <form method="post" action="{% url 'relay:reindex_all' %}" hx-post="{% url 'relay:reindex_all' %}" hx-swap="none" hx-disabled-elt="find button">
@@ -75,7 +75,7 @@
           <section aria-labelledby="kb-gaps-title" class="relay-panel">
             <div class="border-b border-line px-4 py-3.5 dark:border-slate-800">
               <p class="relay-mono relay-muted">Gaps · last 30 days</p>
-              <h3 id="kb-gaps-title" class="font-display text-base font-bold">Questions Relay couldn't answer</h3>
+              <h3 id="kb-gaps-title" class="font-display text-base font-bold">Questions the site assistant couldn't answer</h3>
             </div>
             <ul>
               {% for gap in gaps %}
@@ -96,7 +96,7 @@
           </section>
 
           <section aria-labelledby="kb-test-title" class="relay-panel flex flex-col gap-2.5 p-4">
-            <h3 id="kb-test-title" class="relay-mono relay-muted">Test what Relay would read</h3>
+            <h3 id="kb-test-title" class="relay-mono relay-muted">Test what the site assistant would read</h3>
             <form method="post" action="{% url 'relay:knowledge_test' %}" hx-post="{% url 'relay:knowledge_test' %}" hx-target="#kb-test-results" hx-swap="innerHTML" class="flex flex-col gap-2">
               {% csrf_token %}
               <label for="kb-test" class="sr-only">Test question</label>
@@ -106,7 +106,7 @@
               <button type="submit" class="relay-btn relay-btn-secondary">Test</button>
             </form>
             <div id="kb-test-results" aria-live="polite"></div>
-            {% if threshold is not None %}<p class="relay-mono relay-muted">Answer threshold {{ threshold }} · below it Relay offers a person</p>{% endif %}
+            {% if threshold is not None %}<p class="relay-mono relay-muted">Answer threshold {{ threshold }} · below it the site assistant offers a person</p>{% endif %}
           </section>
         </div>
       </div>

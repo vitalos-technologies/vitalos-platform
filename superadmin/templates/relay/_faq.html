@@ -34,7 +34,7 @@
               <td class="px-4 py-[11px]"><span class="relay-muted block font-mono text-[11px]">{{ entry.externalId }}</span>{{ entry.question }}{% if entry.notionUrl %} <a href="{{ entry.notionUrl }}" target="_blank" rel="noopener noreferrer" class="relay-link ml-1 text-[13px]">Open in Notion<span class="sr-only"> (new tab)</span></a>{% endif %}</td>
               <td class="relay-muted px-2 py-[11px]">{{ entry.section }}</td>
               {% if relay_can_manage %}<td class="px-2 py-[11px]">{{ entry.confirmNote }}</td>{% endif %}
-              <td class="relay-muted px-4 py-[11px] whitespace-nowrap">Not used by Relay</td>
+              <td class="relay-muted px-4 py-[11px] whitespace-nowrap">Not used by the site assistant</td>
             </tr>
           {% empty %}
             <tr><td colspan="4" class="relay-muted px-4 py-6">Nothing is waiting for confirmation.</td></tr>

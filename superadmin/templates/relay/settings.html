@@ -1,10 +1,10 @@
 {% extends "relay/_shell.html" %}
-{% block relay_title %}Relay settings{% endblock %}
+{% block relay_title %}Settings · Site assistant (legacy){% endblock %}
 {% block relay_content %}
   <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-6 px-4 py-7 sm:px-6">
     <div>
       <h2 class="font-display text-[28px] leading-tight font-bold tracking-[-0.01em]">Settings<span class="text-cobalt-600 dark:text-cobalt-300">.</span></h2>
-      <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">How Relay behaves on the website. Every change is recorded in the audit trail.</p>
+      <p class="relay-muted mt-1.5 text-[15px] leading-[22px]">How the site assistant behaves on the website. Every change is recorded in the audit trail.</p>
     </div>
 
     {% if relay_error %}
@@ -15,11 +15,11 @@
         {% if form.non_field_errors %}<div class="relay-panel p-4 text-sm text-rose-700 dark:text-rose-300" role="alert">{% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
 
         <fieldset class="relay-panel grid gap-4 p-5 md:grid-cols-2">
-          <legend class="relay-mono relay-muted float-left mb-1 w-full md:col-span-2">Relay AI</legend>
+          <legend class="relay-mono relay-muted float-left mb-1 w-full md:col-span-2">AI answers</legend>
           {% include "relay/_field.html" with field=form.ai_enabled %}
           {% include "relay/_field.html" with field=form.model %}
-          {% include "relay/_field.html" with field=form.confidence_threshold help="Below this confidence Relay says it does not know and offers a person." %}
-          {% include "relay/_field.html" with field=form.daily_token_cap help="Relay stops answering for the day at this many tokens." %}
+          {% include "relay/_field.html" with field=form.confidence_threshold help="Below this confidence the site assistant says it does not know and offers a person." %}
+          {% include "relay/_field.html" with field=form.daily_token_cap help="The site assistant stops answering for the day at this many tokens." %}
         </fieldset>
 
         <fieldset class="relay-panel grid gap-4 p-5 md:grid-cols-2">
@@ -51,7 +51,7 @@
           <legend class="relay-mono relay-muted float-left mb-1 w-full md:col-span-2">Retention and origins</legend>
           {% include "relay/_field.html" with field=form.no_contact_days %}
           {% include "relay/_field.html" with field=form.with_contact_days %}
-          <div class="md:col-span-2">{% include "relay/_field.html" with field=form.allowed_origins help="Websites allowed to embed Relay, such as https://www.vitalos.co.uk." %}</div>
+          <div class="md:col-span-2">{% include "relay/_field.html" with field=form.allowed_origins help="Websites allowed to embed the site assistant, such as https://www.vitalos.co.uk." %}</div>
         </fieldset>
 
         <div><button type="submit" class="relay-btn relay-btn-primary">Save settings</button></div>
@@ -62,7 +62,7 @@
           <h3 id="relay-recipients" class="min-w-0 flex-1 font-display text-base font-bold">Notification recipients</h3>
           <a href="{% url 'relay:prefs' %}" class="relay-link text-[13px]">My notifications</a>
         </div>
-        <p class="relay-muted px-4 pt-3 text-[13px]">Everyone with Relay access (super admins and service leads). Each person chooses their own alerts.</p>
+        <p class="relay-muted px-4 pt-3 text-[13px]">Everyone with site assistant access (super admins and service leads). Each person chooses their own alerts.</p>
         <div class="overflow-x-auto">
           <table class="w-full min-w-[520px] border-collapse text-sm">
             <thead>

@@ -24,7 +24,7 @@ TYPES = {
     HANDOFF_REQUESTED: "A visitor asks for a person",
     VISITOR_REPLIED: "Visitor replies in my conversation",
     REMINDER: "No one has joined after the reminder delay",
-    NO_ANSWER: "Relay could not answer (no handoff)",
+    NO_ANSWER: "The site assistant could not answer (no handoff)",
     DIGEST: "Daily digest",
     TOKEN_CAP: "Daily token cap reached",
     FAQ_ATTENTION: "Master FAQ sync needs attention",
@@ -80,7 +80,7 @@ class RelayPreference(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Relay preferences for {self.user}"
+        return f"Site assistant preferences for {self.user}"
 
 
 class RelayAlertLog(models.Model):
@@ -129,7 +129,7 @@ class RelayInboxState(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"Relay inbox: {self.needs} need a person, {self.live} live"
+        return f"Site assistant inbox: {self.needs} need a person, {self.live} live"
 
     @classmethod
     def load(cls) -> "RelayInboxState":

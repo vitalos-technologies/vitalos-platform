@@ -35,18 +35,18 @@ MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 USER_AGENT = "vitalos-superadmin-relay/1.0"
 
 ERROR_MESSAGES = {
-    "not_configured": "Relay is not connected yet. Ask a super admin to set the Relay API settings.",
-    "unavailable": "Relay could not be reached. Try again in a moment.",
-    "timeout": "Relay took too long to answer. Try again in a moment.",
-    "bad_response": "Relay sent an unexpected answer. Try again in a moment.",
-    "bad_signature": "Relay refused the request signature. Check RELAY_ADMIN_API_SECRET on both apps.",
-    "stale": "Relay refused the request time. Check the server clock.",
+    "not_configured": "The site assistant is not connected yet. Ask a super admin to set the RELAY_API_* settings.",
+    "unavailable": "The site assistant could not be reached. Try again in a moment.",
+    "timeout": "The site assistant took too long to answer. Try again in a moment.",
+    "bad_response": "The site assistant sent an unexpected answer. Try again in a moment.",
+    "bad_signature": "The site assistant refused the request signature. Check RELAY_ADMIN_API_SECRET on both apps.",
+    "stale": "The site assistant refused the request time. Check the server clock.",
     "forbidden": "You do not have permission to do that.",
     "not_found": "That conversation or entry no longer exists.",
     "conflict": "That changed while you were looking at it. Refresh and try again.",
     "read_only": "This entry comes from its source and cannot be edited here.",
-    "invalid": "Relay could not accept that. Check the fields and try again.",
-    "disabled": "Relay is switched off on the website.",
+    "invalid": "The site assistant could not accept that. Check the fields and try again.",
+    "disabled": "The site assistant is switched off on the website.",
 }
 
 

@@ -129,7 +129,7 @@ def _origin(value: str) -> str:
 class SettingsForm(_Styled, forms.Form):
     """The editable part of RelaySettings (API.md). Timezone stays Europe/London."""
 
-    ai_enabled = forms.BooleanField(required=False, label="Relay AI answers visitors")
+    ai_enabled = forms.BooleanField(required=False, label="AI answers visitors")
     model = forms.CharField(max_length=80)
     days = forms.MultipleChoiceField(choices=DAYS, widget=forms.CheckboxSelectMultiple, label="Business days")
     start = forms.RegexField(regex=r"^([01]\d|2[0-3]):[0-5]\d$", max_length=5, label="Opens")

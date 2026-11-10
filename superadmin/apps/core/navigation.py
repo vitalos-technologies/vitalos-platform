@@ -104,7 +104,7 @@ NAV_ITEMS = (
     ),
     NavItem(
         "relay",
-        "Relay",
+        "Site assistant (legacy)",
         "relay:inbox",
         "chat",
         "Operate",

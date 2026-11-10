@@ -47,7 +47,7 @@ def insights(request):
         {
             "tiles": [
                 ("Conversations", f"{data.get('conversations', 0):,}"),
-                ("Answered by Relay AI", f"{data.get('aiResolved', 0):,}"),
+                ("Answered by the AI", f"{data.get('aiResolved', 0):,}"),
                 ("Hand-off rate", _percent(data.get("handoffRate"))),
                 ("Helpful / not helpful", f"{helpful} / {not_helpful}"),
                 ("Median time to first person reply", _duration(data.get("medianFirstReplySeconds"))),
@@ -111,7 +111,7 @@ def relay_settings(request):
         except RelayError as error:
             form.add_error(None, error.user_message)
         else:
-            messages.success(request, "Relay settings saved.")
+            messages.success(request, "Site assistant settings saved.")
             return HttpResponseRedirect(reverse("relay:settings"))
     try:
         context["email_log"] = (client.email_log() or {}).get("emails") or []

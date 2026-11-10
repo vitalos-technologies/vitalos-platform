@@ -153,13 +153,13 @@ def test_handoff_requested_alerts_everyone_with_access(post, team, mailoutbox):
     }
     assert sorted(m.to[0] for m in mailoutbox) == ["lead@example.test", "owner@example.test"]
     message = mailoutbox[0]
-    assert message.subject == "Relay: Alex Morgan needs a person"
+    assert message.subject == "Site assistant (legacy): Alex Morgan needs a person"
     assert message.from_email == "Vitalos Relay <relay@notify.vitalos.co.uk>"
     assert message.extra_headers["Auto-Submitted"] == "auto-generated"
     text = message.body
-    assert "RELAY · NEEDS A PERSON" in text
+    assert "SITE ASSISTANT · NEEDS A PERSON" in text
     assert "Alex Morgan is waiting for a reply." in text
-    assert "Alex marked a Relay answer as not helpful and asked to talk to a person." in text
+    assert "Alex marked an AI answer as not helpful and asked to talk to a person." in text
     assert "> “Roughly how long would that take?”" in text
     assert "Trigger: Not helpful, then asked for a person" in text
     assert "Waiting since: 14:24 BST, 15 October 2026" in text
@@ -183,8 +183,8 @@ def test_quote_is_omitted_when_the_website_sends_no_snippet(post, team, mailoutb
 
 def test_low_confidence_trigger_wording(post, team, mailoutbox):
     post("handoff.requested", handoff_data(trigger="low_confidence", displayName="Visitor 8C1D"))
-    assert "Relay could not answer from published knowledge." in mailoutbox[0].body
-    assert mailoutbox[0].subject == "Relay: Visitor 8C1D needs a person"
+    assert "The site assistant could not answer from published knowledge." in mailoutbox[0].body
+    assert mailoutbox[0].subject == "Site assistant (legacy): Visitor 8C1D needs a person"
 
 
 def test_ten_minute_email_dedupe_per_conversation_type_and_recipient(post, team, mailoutbox):
@@ -219,7 +219,7 @@ def test_visitor_replied_goes_to_the_assigned_admin(post, team, mailoutbox):
     )
     assert list(RelayNotification.objects.values_list("recipient", flat=True)) == [lead.pk]
     assert [m.to for m in mailoutbox] == [["lead@example.test"]]
-    assert mailoutbox[0].subject == "Relay: Alex Morgan replied"
+    assert mailoutbox[0].subject == "Site assistant (legacy): Alex Morgan replied"
     assert "sent a new message in your conversation" in mailoutbox[0].body
 
 
@@ -239,7 +239,7 @@ def test_reminder(post, team, mailoutbox):
     )
     row = RelayNotification.objects.first()
     assert row.title == "No one has joined Alex Morgan" and row.body == "Reminder after 10 minutes"
-    assert mailoutbox[0].subject == "Relay: Alex Morgan is still waiting"
+    assert mailoutbox[0].subject == "Site assistant (legacy): Alex Morgan is still waiting"
     assert "No one has joined after 10 minutes. This is reminder 1." in mailoutbox[0].body
 
 
@@ -249,7 +249,7 @@ def test_no_answer_is_in_app_only_by_default(post, team, mailoutbox):
         {"conversationId": ALEX, "question": "What are your day rates?", "pagePath": "/pricing"},
     )
     assert RelayNotification.objects.count() == 2
-    assert RelayNotification.objects.first().title == "Relay had no answer in knowledge"
+    assert RelayNotification.objects.first().title == "The site assistant had no answer in knowledge"
     assert mailoutbox == []
 
 
@@ -273,7 +273,7 @@ def test_digest_is_email_only(post, team, mailoutbox):
     assert not RelayNotification.objects.exists()
     assert len(mailoutbox) == 2
     text = mailoutbox[0].body
-    assert mailoutbox[0].subject == "Relay daily digest"
+    assert mailoutbox[0].subject == "Site assistant (legacy) daily digest"
     assert "Hand-off rate: 25%" in text and "- What are your day rates? (2)" in text
     post("digest.daily", {"waitingNow": 0, "yesterday": {}})
     assert len(mailoutbox) == 2  # one digest a day
@@ -285,8 +285,8 @@ def test_token_cap_and_faq_go_to_superadmins(post, team, mailoutbox):
     post("faq.attention", {"held": 2, "consecutiveFailures": 3, "runId": str(uuid.uuid4())})
     assert set(RelayNotification.objects.values_list("recipient", flat=True)) == {owner.pk}
     assert sorted(m.subject for m in mailoutbox) == [
-        "Relay: Master FAQ sync needs attention",
-        "Relay: daily token cap reached",
+        "Site assistant (legacy): Master FAQ sync needs attention",
+        "Site assistant (legacy): daily token cap reached",
     ]
 
 

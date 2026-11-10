@@ -52,7 +52,7 @@ def _audit(action, request, entity_type, entity_id, summary, **meta) -> None:
 def join(user, conversation_id, request=None) -> dict:
     _require_access(user)
     data = get_client(user).join(conversation_id)
-    _audit("relay.joined", request, CONVERSATION, conversation_id, "Joined a Relay conversation")
+    _audit("relay.joined", request, CONVERSATION, conversation_id, "Joined a site assistant conversation")
     return data
 
 
@@ -66,7 +66,7 @@ def assign(user, conversation_id, assignee, request=None) -> dict:
         request,
         CONVERSATION,
         conversation_id,
-        f"Assigned a Relay conversation to {assignee.email}",
+        f"Assigned a site assistant conversation to {assignee.email}",
         assignee=f"sa:{assignee.pk}",
     )
     return data
@@ -76,7 +76,7 @@ def hand_back(user, conversation_id, request=None) -> dict:
     _require_access(user)
     data = get_client(user).handback(conversation_id)
     _audit(
-        "relay.handed_back", request, CONVERSATION, conversation_id, "Handed a conversation back to Relay AI"
+        "relay.handed_back", request, CONVERSATION, conversation_id, "Handed a conversation back to the AI"
     )
     return data
 
@@ -84,7 +84,7 @@ def hand_back(user, conversation_id, request=None) -> dict:
 def close(user, conversation_id, request=None) -> dict:
     _require_access(user)
     data = get_client(user).close(conversation_id)
-    _audit("relay.closed", request, CONVERSATION, conversation_id, "Closed a Relay conversation")
+    _audit("relay.closed", request, CONVERSATION, conversation_id, "Closed a site assistant conversation")
     return data
 
 
@@ -96,7 +96,7 @@ def reply(user, conversation_id, text, client_message_id, email_if_away, request
         request,
         CONVERSATION,
         conversation_id,
-        "Replied in a Relay conversation",
+        "Replied in a site assistant conversation",
         characters=len(text),
         emailed=bool((data or {}).get("emailed")),
     )
@@ -124,14 +124,20 @@ def typing(user, conversation_id) -> bool:
 def delete(user, conversation_id, request=None) -> dict:
     _require_access(user)
     data = get_client(user).delete(conversation_id)
-    _audit("relay.deleted", request, CONVERSATION, conversation_id, "Deleted a Relay conversation")
+    _audit("relay.deleted", request, CONVERSATION, conversation_id, "Deleted a site assistant conversation")
     return data
 
 
 def transcript(user, conversation_id, request=None) -> str:
     _require_access(user)
     text = str((get_client(user).transcript(conversation_id) or {}).get("text") or "")
-    _audit("relay.transcript_copied", request, CONVERSATION, conversation_id, "Copied a Relay transcript")
+    _audit(
+        "relay.transcript_copied",
+        request,
+        CONVERSATION,
+        conversation_id,
+        "Copied a site assistant transcript",
+    )
     return text
 
 
@@ -145,7 +151,7 @@ def save_to_knowledge(user, conversation_id, message_id, request=None) -> str:
         request,
         DOCUMENT,
         document_id,
-        "Saved a reply to Relay knowledge as a draft",
+        "Saved a reply to site assistant knowledge as a draft",
         conversation=str(conversation_id),
     )
     return document_id
@@ -161,7 +167,7 @@ def set_availability(user, available: bool, request=None, *, heartbeat: bool = F
             request,
             "accounts.user",
             user.pk,
-            "Available for Relay" if available else "Not available for Relay",
+            "Available for the site assistant" if available else "Not available for the site assistant",
             available=bool(available),
         )
     return data
@@ -178,7 +184,7 @@ def create_document(user, fields: dict, request=None) -> dict:
         request,
         DOCUMENT,
         document.get("id", ""),
-        "Added a draft Relay knowledge entry",
+        "Added a draft site assistant knowledge entry",
     )
     return document
 
@@ -186,28 +192,40 @@ def create_document(user, fields: dict, request=None) -> dict:
 def update_document(user, document_id, fields: dict, request=None) -> dict:
     _require_access(user)
     document = (get_client(user).update_document(document_id, fields) or {}).get("document") or {}
-    _audit("relay.knowledge_saved", request, DOCUMENT, document_id, "Edited a Relay knowledge entry")
+    _audit("relay.knowledge_saved", request, DOCUMENT, document_id, "Edited a site assistant knowledge entry")
     return document
 
 
 def publish(user, document_id, request=None) -> dict:
     _require_manage(user)
     document = (get_client(user).publish(document_id) or {}).get("document") or {}
-    _audit("relay.knowledge_published", request, DOCUMENT, document_id, "Published a Relay knowledge entry")
+    _audit(
+        "relay.knowledge_published",
+        request,
+        DOCUMENT,
+        document_id,
+        "Published a site assistant knowledge entry",
+    )
     return document
 
 
 def archive(user, document_id, request=None) -> dict:
     _require_manage(user)
     document = (get_client(user).archive(document_id) or {}).get("document") or {}
-    _audit("relay.knowledge_archived", request, DOCUMENT, document_id, "Archived a Relay knowledge entry")
+    _audit(
+        "relay.knowledge_archived",
+        request,
+        DOCUMENT,
+        document_id,
+        "Archived a site assistant knowledge entry",
+    )
     return document
 
 
 def reindex(user, document_id, request=None) -> dict:
     _require_manage(user)
     document = (get_client(user).reindex(document_id) or {}).get("document") or {}
-    _audit("relay.reindexed", request, DOCUMENT, document_id, "Re-indexed a Relay knowledge entry")
+    _audit("relay.reindexed", request, DOCUMENT, document_id, "Re-indexed a site assistant knowledge entry")
     return document
 
 
@@ -219,7 +237,7 @@ def reindex_all(user, request=None) -> dict:
         request,
         DOCUMENT,
         "all",
-        "Re-indexed all Relay knowledge",
+        "Re-indexed all site assistant knowledge",
         documents=data.get("documents"),
         chunks=data.get("chunks"),
     )
@@ -265,7 +283,7 @@ def save_settings(user, current: dict, changes: dict, request=None) -> dict:
         request,
         "relay.settings",
         "settings",
-        "Changed Relay settings: " + (", ".join(changed) if changed else "no changes"),
+        "Changed site assistant settings: " + (", ".join(changed) if changed else "no changes"),
         changed=changed,
     )
     return saved

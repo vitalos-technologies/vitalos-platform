@@ -42,7 +42,7 @@ def test_every_page_renders_for_superadmin(client_for, superadmin, relay, path):
     response = client_for(superadmin).get(path)
     assert response.status_code == 200, path
     body = response.content.decode()
-    assert "Relay<span" in body and 'id="relay-config"' in body
+    assert "Site assistant (legacy)<span" in body and 'id="relay-config"' in body
 
 
 def test_relay_root_redirects_to_the_inbox(client_for, superadmin, relay):
@@ -182,7 +182,7 @@ def test_thread_shows_messages_context_and_alerts(client_for, superadmin, relay)
     assert "MARKED NOT HELPFUL" in body
     assert "HANDOFF REQUESTED ·" in body and "CONSENT GIVEN" in body
     assert "Join conversation" in body and "Join and send" in body
-    assert "Joining pauses Relay AI for this conversation." in body
+    assert "Joining pauses the AI for this conversation." in body
     assert "Email this reply if Alex has left" in body
     assert "alex.morgan@example.com" in body and "Example Care Group" in body
     assert "Consent to contact" in body and "notice v1.0" in body
@@ -290,7 +290,7 @@ def test_delete_needs_an_inline_confirmation(client_for, superadmin, relay):
     response = client.post(f"/relay/inbox/{VISITOR_8C1D}/delete/", {"confirm": "delete"}, **HX)
     assert response.status_code == 204 and response["HX-Redirect"] == "/relay/inbox/"
     assert VISITOR_8C1D not in relay.data["conversations"]
-    assert AuditEvent.objects.get(action="relay.deleted").summary == "Deleted a Relay conversation"
+    assert AuditEvent.objects.get(action="relay.deleted").summary == "Deleted a site assistant conversation"
 
 
 def test_typing_is_throttled(client_for, superadmin, relay):
@@ -319,7 +319,7 @@ def test_api_errors_are_shown_not_raised(client_for, superadmin, relay):
     assert "changed while you were looking" in json.loads(response["HX-Trigger"])["vsa-toast"]["message"]
     relay.fail_next(RelayError("unavailable"))
     body = client_for(superadmin).get("/relay/inbox/").content.decode()
-    assert "Relay could not be reached" in body
+    assert "The site assistant could not be reached" in body
 
 
 # --- Availability, bell, pulse, prefs ------------------------------------------------------------
@@ -421,7 +421,7 @@ def test_knowledge_page_shows_sources_entries_and_gaps(client_for, superadmin, r
 
 def test_knowledge_faq_views(client_for, superadmin, lead, relay):
     body = client_for(superadmin).get("/relay/knowledge/?view=confirm").content.decode()
-    assert "Not used by Relay" in body and "Confirm note" in body and "Sync now" in body
+    assert "Not used by the site assistant" in body and "Confirm note" in body and "Sync now" in body
     body = client_for(lead).get("/relay/knowledge/?view=confirm").content.decode()
     assert "Confirm note" not in body and "Sync now" not in body
     body = client_for(superadmin).get("/relay/knowledge/?view=held").content.decode()
@@ -436,7 +436,7 @@ def test_retrieval_test_marks_chunks_above_the_threshold(client_for, superadmin,
     )
     assert "Engineering Rescue · §2" in body and "0.82" in body
     assert body.count("above the threshold") == 2
-    assert "Answer threshold 0.4 · below it Relay offers a person" in body
+    assert "Answer threshold 0.4 · below it the site assistant offers a person" in body
 
 
 def test_markdown_preview_is_safe(client_for, superadmin, relay):
