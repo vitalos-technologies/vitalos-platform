@@ -25,10 +25,10 @@ overrides:
   postcss@<8.5.23: 8.5.23
   smol-toml@<1.7.1: 1.7.1
   # motion is pinned exact (ADR-024); its own caret ranges would pull releases younger than two weeks.
-  motion@13.4.4>framer-motion: 13.4.4
-  framer-motion@13.4.4>motion-dom: 13.4.4
-  framer-motion@13.4.4>motion-utils: 13.3.0
-  motion-dom@13.4.4>motion-utils: 13.3.0
+  motion@14.1.0>framer-motion: 14.1.0
+  framer-motion@14.1.0>motion-dom: 14.1.0
+  framer-motion@14.1.0>motion-utils: 14.1.0
+  motion-dom@14.1.0>motion-utils: 14.1.0
   # Advisory fixes (docs/security/dependency-advisories.md). Selectors are as narrow as the chains allow;
   # versions are exact patched releases.
   brace-expansion@<1.1.21: 1.1.21
