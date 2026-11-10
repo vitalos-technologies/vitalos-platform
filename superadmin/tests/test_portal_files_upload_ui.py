@@ -366,6 +366,7 @@ def test_new_version_from_the_file_page_still_works_and_refusals_return_there(wo
 
 
 # --- Account settings shell -------------------------------------------------------------------------------------
+# One page per section: every menu item is a real URL and only the selected section is on the page.
 
 
 def settings_nav(html: str) -> str:
@@ -375,41 +376,94 @@ def settings_nav(html: str) -> str:
 
 
 SECTIONS = {
-    "Profile": "/portal/account/#profile",
-    "Sign-in &amp; security": "/portal/account/#security",
-    "Notifications on this device": "/portal/account/#device",
+    "Profile": "/portal/account/",
+    "Sign-in &amp; security": "/portal/account/security/",
+    "Notifications on this device": "/portal/account/device/",
     "Notification preferences": "/portal/notifications/preferences/",
-    "Install the app": "/portal/account/#install",
+    "Install the app": "/portal/account/install/",
 }
+# What marks each section's content.
+SECTION_CARDS = {
+    "/portal/account/": 'data-testid="settings-profile"',
+    "/portal/account/security/": 'data-testid="settings-security"',
+    "/portal/account/device/": 'data-testid="push-card"',
+    "/portal/notifications/preferences/": 'data-testid="settings-preferences"',
+    "/portal/account/install/": 'data-testid="install-card"',
+}
+TWO_STEP = "/portal/account/security/two-step/"
 
 
-def test_every_settings_section_is_reachable(world):
+def menu_links(nav: str) -> list[tuple[str, str]]:
+    found = re.findall(r'<a class="settings__link" href="([^"]+)"[^>]*>.*?<span>(.*?)</span></a>', nav, re.S)
+    return [(label, href) for href, label in found]
+
+
+def current_item(nav: str) -> list[str]:
+    return re.findall(r'aria-current="page">.*?<span>(.*?)</span>', nav, re.S)
+
+
+def test_every_settings_section_is_its_own_page(world):
     client = client_for(world.approver.user)
-    html = page(client, "/portal/account/")
-    nav = settings_nav(html)
-    assert 'aria-label="Account settings"' in nav and 'role="tab' not in nav  # links, not ARIA tabs
-    labels = re.findall(r'<a class="settings__link" href="([^"]+)"[^>]*>.*?<span>(.*?)</span></a>', nav, re.S)
-    assert [(label, href) for href, label in labels] == list(SECTIONS.items())
-    for href in SECTIONS.values():
-        path, _, anchor = href.partition("#")
-        target = page(client, path)
-        if anchor:
-            assert f'id="{anchor}"' in target, href
+    for label, path in SECTIONS.items():
+        html = page(client, path)
+        nav = settings_nav(html)
+        assert 'aria-label="Account settings"' in nav and 'role="tab' not in nav  # links, not ARIA tabs
+        assert menu_links(nav) == list(SECTIONS.items()), path
+        assert "#" not in nav  # no anchors: each section has its own URL
+        assert current_item(nav) == [label], path
+        content = html.split('<div class="settings__content">', 1)[1]
+        for other, card in SECTION_CARDS.items():
+            assert (card in content) == (other == path), (path, other)
+        assert "<h1>Your account</h1>" in html
+        # The top menu marks Account and the mobile tab bar marks More, as before.
+        assert re.search(r'<a href="/portal/account/" aria-current="page">Account</a>', html), path
+        assert 'class="tabbar__item is-active" popovertarget="portal-nav"' in html, path
 
 
 @pytest.mark.parametrize(
     ("path", "current"),
     [
         ("/portal/account/", "Profile"),
-        ("/portal/notifications/preferences/", "Notification preferences"),
         ("/portal/account/security/", "Sign-in &amp; security"),
+        (TWO_STEP, "Sign-in &amp; security"),
+        ("/portal/account/device/", "Notifications on this device"),
+        ("/portal/notifications/preferences/", "Notification preferences"),
+        ("/portal/account/install/", "Install the app"),
     ],
 )
 def test_the_active_settings_item_carries_aria_current(world, path, current):
     nav = settings_nav(page(client_for(world.approver.user), path))
     assert nav.count('aria-current="page"') == 1
-    marked = re.search(r'aria-current="page">.*?<span>(.*?)</span>', nav, re.S).group(1)
-    assert marked == current
+    assert current_item(nav) == [current]
+
+
+def test_account_sections_need_a_signed_in_member(world):
+    staff = client_for(world.staff)
+    for path in (*SECTIONS.values(), TWO_STEP):
+        response = Client().get(path)
+        assert response.status_code == 302 and "/portal/sign-in/" in response["Location"], path
+        assert staff.get(path).status_code == 403, path  # staff use Preview as customer
+
+
+def test_section_pages_are_get_only_and_every_form_carries_csrf(world):
+    client = client_for(world.approver.user)
+    for path in (
+        "/portal/account/",
+        "/portal/account/security/",
+        "/portal/account/device/",
+        "/portal/account/install/",
+    ):
+        assert client.post(path).status_code == 405, path
+    for path in (*SECTIONS.values(), TWO_STEP):
+        html = page(client, path)
+        forms = re.findall(r'<form[^>]*method="post".*?</form>', html, re.S)
+        assert forms, path
+        for form in forms:
+            assert 'name="csrfmiddlewaretoken"' in form, (path, form[:80])
+    strict = Client(enforce_csrf_checks=True)
+    strict.force_login(world.approver.user)
+    assert strict.post(TWO_STEP, {"token": "123456"}).status_code == 403
+    assert strict.post("/portal/notifications/preferences/", {"email_updates": "on"}).status_code == 403
 
 
 def test_preferences_inside_the_shell_still_save(world):
@@ -426,22 +480,53 @@ def test_preferences_inside_the_shell_still_save(world):
     assert "Your notification preferences were saved." in page(client, "/portal/notifications/preferences/")
 
 
-def test_push_and_install_cards_keep_their_hooks_in_the_shell(world):
-    html = page(client_for(world.approver.user), "/portal/account/")
-    push = re.search(r'<section class="card push" id="device" data-push aria-labelledby="push-title"', html)
-    install = re.search(
-        r'<section class="card install" id="install" data-install aria-labelledby="install-title"', html
+def test_push_and_install_cards_keep_their_hooks_on_their_own_pages(world):
+    client = client_for(world.approver.user)
+    device = page(client, "/portal/account/device/")
+    install = page(client, "/portal/account/install/")
+    assert re.search(r'<section class="card push" id="device" data-push aria-labelledby="push-title"', device)
+    assert re.search(
+        r'<section class="card install" id="install" data-install aria-labelledby="install-title"', install
     )
-    assert push and install
     # Without push keys the card shows its "unavailable" state (test_portal_push covers the keyed states).
+    for hook in ('data-push-state="unavailable"', 'data-testid="push-card"', "data-push "):
+        assert hook in device and hook not in install, hook
     for hook in (
-        'data-push-state="unavailable"',
-        'data-testid="push-card"',
         'data-install-state="manual"',
         "data-install-button",
+        'data-testid="install-card"',
+        "data-install ",
     ):
-        assert hook in html, hook
-    assert "<script" not in html.split("<main", 1)[1]  # CSP: no inline script in the page body
+        assert hook in install and hook not in device, hook
+    for path in ("/portal/account/", "/portal/account/security/", "/portal/notifications/preferences/"):
+        html = page(client, path)
+        assert 'data-testid="push-card"' not in html and "data-install" not in html, path
+    for html in (device, install):
+        assert "<script" not in html.split("<main", 1)[1]  # CSP: no inline script in the page body
+
+
+def test_security_section_leads_to_two_step_set_up_and_back(world):
+    from django_otp.oath import totp
+    from django_otp.plugins.otp_totp.models import TOTPDevice
+
+    client = client_for(world.approver.user)
+    security = page(client, "/portal/account/security/")
+    row = re.search(r'data-testid="settings-security".*?</section>', security, re.S).group(0)
+    assert '<span class="badge">Off</span>' in row and f'href="{TWO_STEP}">Turn on</a>' in row
+    assert "Forgot your password?" in row
+    setup = page(client, TWO_STEP)
+    assert 'class="qr"' in setup and 'href="/portal/account/security/">Cancel</a>' in setup
+    device = TOTPDevice.objects.get(user=world.approver.user, confirmed=False)
+    token = f"{totp(device.bin_key, step=device.step, t0=device.t0, digits=device.digits):06d}"
+    response = client.post(TWO_STEP, {"token": token})
+    assert response.status_code == 302 and response["Location"] == "/portal/account/security/"
+    assert AuditEvent.objects.filter(action="portal.mfa_enrolled", actor=world.approver.user).exists()
+    after = page(client, "/portal/account/security/")
+    assert "Two-step sign-in is on." in after and '<span class="badge badge--ok">On</span>' in after
+    assert f'href="{TWO_STEP}"' not in after
+    # Set up again once it is on: back to the section.
+    again = client.get(TWO_STEP)
+    assert again.status_code == 302 and again["Location"] == "/portal/account/security/"
 
 
 def test_preview_hides_push_and_install_in_the_shell(world):
@@ -450,8 +535,45 @@ def test_preview_hides_push_and_install_in_the_shell(world):
     html = page(staff, base + "account/")
     nav = settings_nav(html)
     assert "Notifications on this device" not in nav and "Install the app" not in nav
-    assert f'href="{base}account/#profile"' in nav and f'href="{base}notifications/preferences/"' in nav
-    assert 'data-testid="push-card"' not in html and 'data-testid="install-card"' not in html
-    assert "data-push" not in html and "data-install" not in html
+    assert [href for _label, href in menu_links(nav)] == [
+        base + "account/",
+        base + "account/security/",
+        base + "notifications/preferences/",
+    ]
+    for path in ("account/", "account/security/", "notifications/preferences/"):
+        html = page(staff, base + path)
+        assert 'data-testid="push-card"' not in html and 'data-testid="install-card"' not in html, path
+        assert "data-push" not in html and "data-install" not in html, path
+    assert "two-step/" not in page(staff, base + "account/security/")  # no Turn on in preview
+    # The device, install and set-up URLs exist in preview but lead back to the shell, as set-up did before.
+    for path, target in (
+        ("account/device/", "account/"),
+        ("account/install/", "account/"),
+        ("account/security/two-step/", "account/security/"),
+    ):
+        response = staff.get(base + path)
+        assert response.status_code == 302 and response["Location"] == base + target, path
     prefs = page(staff, base + "notifications/preferences/")
     assert "Preview is read-only." in prefs and 'data-testid="preferences-form"' not in prefs
+
+
+def test_account_sections_on_the_portal_host(world, settings):
+    host = "portal.example.test"
+    settings.PORTAL_HOST = host
+    settings.ALLOWED_HOSTS = ["testserver", host]
+    client = client_for(world.approver.user)
+    client.defaults["HTTP_HOST"] = host
+    for path in ("/account/", "/account/security/", "/account/device/", "/account/install/"):
+        nav = settings_nav(page(client, path))
+        assert [href for _label, href in menu_links(nav)] == [
+            "/account/",
+            "/account/security/",
+            "/account/device/",
+            "/notifications/preferences/",
+            "/account/install/",
+        ], path
+    assert client.get("/account/security/two-step/").status_code == 200
+    # The Super Admin's own account sections never answer on the portal host, and the reverse.
+    for path in ("/account/password/", "/account/two-step/", "/account/2fa/setup/"):
+        assert client.get(path).status_code == 404, path
+    assert client_for(world.approver.user).get("/portal/account/device/").status_code == 404

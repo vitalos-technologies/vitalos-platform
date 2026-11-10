@@ -9,29 +9,27 @@
   <p class="aid-muted mt-1 max-w-3xl text-sm">{{ info.summary }}</p>
   {% include "aidata/_nav.html" with section=section %}
 
-  <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-    <section class="aid-card" aria-labelledby="needs-heading">
-      <h2 id="needs-heading" class="border-b border-aid-border px-4 py-3 text-sm font-semibold text-aid-heading">What this stage needs</h2>
-      <ul>
-        {% for name, source, status in info.needs %}
-          <li class="aid-row"><div class="min-w-0 flex-1"><p class="font-medium text-aid-heading">{{ name }}</p><p class="aid-muted text-xs">{{ source }}</p></div><span class="aid-chip aid-chip-neutral">{{ status }}</span></li>
-        {% endfor %}
-      </ul>
-    </section>
-    <section aria-labelledby="empty-heading">
-      <h2 id="empty-heading" class="sr-only">Current state</h2>
-      {% if section == "incubation" and recurring %}
-        <div class="aid-card p-4" data-testid="recurring">
-          <p class="font-semibold text-aid-heading">Repeated sectors in the pipeline</p>
-          <p class="aid-muted text-xs">Counted from real opportunities. This is a signal to investigate, not evidence of a product.</p>
-          <ul class="mt-2 text-sm">{% for row in recurring %}<li>{{ row.label }}: {{ row.count }} opportunities</li>{% endfor %}</ul>
-        </div>
-      {% else %}
-        {% url 'aidata:pipeline' as pipeline_url %}
-        {% include "aidata/components/_empty_state.html" with icon="layers" title="Nothing to show yet" body=info.next action_url=pipeline_url action_label="Open the pipeline" %}
-      {% endif %}
-      {% if section == "delivery" %}<p class="aid-muted mt-3 text-xs">Opportunities won so far: {{ won }}.</p>{% endif %}
-    </section>
-  </div>
+  {% if section == "delivery" %}
+    {% include "aidata/lifecycle/_delivery.html" with d=delivery %}
+  {% elif section == "operations" %}
+    {% include "aidata/lifecycle/_operations.html" with o=operations %}
+  {% else %}
+    <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      {% include "aidata/lifecycle/_needs.html" %}
+      <section aria-labelledby="empty-heading">
+        <h2 id="empty-heading" class="sr-only">Current state</h2>
+        {% if recurring %}
+          <div class="aid-card p-4" data-testid="recurring">
+            <p class="font-semibold text-aid-heading">Repeated sectors in the pipeline</p>
+            <p class="aid-muted text-xs">Counted from real opportunities. This is a signal to investigate, not evidence of a product.</p>
+            <ul class="mt-2 text-sm">{% for row in recurring %}<li>{{ row.label }}: {{ row.count }} opportunities</li>{% endfor %}</ul>
+          </div>
+        {% else %}
+          {% url 'aidata:pipeline' as pipeline_url %}
+          {% include "aidata/components/_empty_state.html" with icon="layers" title="Nothing to show yet" body=info.next action_url=pipeline_url action_label="Open the pipeline" %}
+        {% endif %}
+      </section>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

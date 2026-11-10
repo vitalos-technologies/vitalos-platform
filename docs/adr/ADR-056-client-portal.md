@@ -125,7 +125,7 @@ Live monitoring integrations (service status is manual only, labelled with sourc
 
   Desktop in a browser tab keeps the current layout.
 
-- **Install guidance.** The Account page has an "Install the app" card instead of a popup:
+- **Install guidance.** Account › Install the app (its own page, `/account/install/`, since 2 Nov 2026) has an install card instead of a popup:
   - The server HTML shows the manual steps.
   - When Chromium fires its deferred `beforeinstallprompt`, the steps become an Install button.
   - On iOS Safari the card says "Tap Share, then Add to Home Screen".
@@ -187,7 +187,7 @@ Live monitoring integrations (service status is manual only, labelled with sourc
   - `notificationclick` focuses or opens only a same-origin path inside the portal scope. Anything else opens the portal home.
   - `pushsubscriptionchange` re-subscribes and posts to `push/renew/`, best effort. Failing that, the next portal visit re-registers a rotated subscription quietly, and only in a browser where the member turned notifications on.
 - **UI.**
-  - The Account card is "Notifications on this device", with these states: unavailable; iOS not installed ("Install the app first: tap Share, then Add to Home Screen, then turn notifications on from the app"); off; on (Turn off, Send a test notification); blocked (how to allow it).
+  - Account › Notifications on this device (its own page, `/account/device/`, since 2 Nov 2026) has these states: unavailable; iOS not installed ("Install the app first: tap Share, then Add to Home Screen, then turn notifications on from the app"); off; on (Turn off, Send a test notification); blocked (how to allow it).
   - The permission prompt only ever follows a click on "Turn on".
   - A device list (label, date added, "This device", Remove).
   - Push toggles beside email on Notification preferences.
@@ -197,7 +197,7 @@ Live monitoring integrations (service status is manual only, labelled with sourc
 ### Consequences
 
 - No new service, account or cost: push services are free to senders and the key lives in the existing secret store.
-- After a deploy the owner turns notifications on from Account on a real phone and presses "Send a test notification". On an iPhone, install the app first.
+- After a deploy the owner turns notifications on from Account › Notifications on this device on a real phone and presses "Send a test notification". On an iPhone, install the app first.
 - Headless browsers cannot register with real push services. The automated checks use a fake push service on 127.0.0.1 and a stubbed browser subscription, so the first real-device test is the proof that each push service accepts our messages.
 
 ### Deferred (not built)

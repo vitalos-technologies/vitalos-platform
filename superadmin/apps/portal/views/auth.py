@@ -203,9 +203,9 @@ def invitation(request, token):
 def otp_setup(request, ctx):
     user = ctx.user
     if ctx.preview:
-        return redirect("portal_preview:account", preview_member=ctx.member.pk)
+        return redirect("portal_preview:account_security", preview_member=ctx.member.pk)
     if otp.confirmed_devices(user).exists():
-        return redirect("portal:account")
+        return redirect("portal:account_security")
     device = otp.pending_device(user)
     form = OTPForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -222,7 +222,7 @@ def otp_setup(request, ctx):
                 summary="Authenticator enrolled",
             )
             messages.success(request, "Two-step sign-in is on.")
-            return redirect("portal:account")
+            return redirect("portal:account_security")
         form.add_error("token", "That code did not match. Scan the QR code again and enter the current code.")
     from .customer import show
 

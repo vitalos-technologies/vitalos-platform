@@ -1,0 +1,16 @@
+{% extends "partials/settings_layout.html" %}
+{% load ui %}
+{% block title %}{% block section_title %}{% endblock %} · Account &amp; security · Vitalos Super Admin{% endblock %}
+{# Account & security in the Settings layout (partials/settings_layout.html): one URL per section, plain links (each form posts and redirects as a full page). The views pass section for aria-current. #}
+{% block shell_heading %}
+  <h1 class="text-2xl font-semibold">Account &amp; security</h1>
+  <p class="muted mt-1 text-sm">{{ user.email }} · {{ role|default:"No role assigned" }}</p>
+{% endblock %}
+{% block shell_menu_label %}Account sections{% endblock %}
+{% block shell_menu %}
+  <ul class="settings-menu-list">
+    <li><a class="settings-link" href="{% url 'accounts:account' %}" {% if section == 'profile' %}aria-current="page"{% endif %} data-settings-section="profile">{% icon "user" "h-4 w-4 shrink-0" %}<span>Profile</span></a></li>
+    <li><a class="settings-link" href="{% url 'accounts:account_password' %}" {% if section == 'password' %}aria-current="page"{% endif %} data-settings-section="password">{% icon "key" "h-4 w-4 shrink-0" %}<span>Password</span></a></li>
+    <li><a class="settings-link" href="{% url 'accounts:account_two_step' %}" {% if section == 'two_step' %}aria-current="page"{% endif %} data-settings-section="two_step">{% icon "shield" "h-4 w-4 shrink-0" %}<span>Two-step sign-in</span></a></li>
+  </ul>
+{% endblock %}

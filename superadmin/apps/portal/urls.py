@@ -22,8 +22,12 @@ auth_patterns = [
 ]
 
 workspace_patterns = [
+    # Your account: one page per section (Notification preferences is under notifications/).
     path("account/", customer.account, name="account"),
-    path("account/security/", auth.otp_setup, name="otp_setup"),
+    path("account/security/", customer.account_security, name="account_security"),
+    path("account/security/two-step/", auth.otp_setup, name="otp_setup"),
+    path("account/device/", customer.account_device, name="account_device"),
+    path("account/install/", customer.account_install, name="account_install"),
     path("", customer.dashboard, name="home"),
     path("challenges/", customer.challenges, name="challenges"),
     path("challenges/<int:pk>/", customer.challenge, name="challenge"),

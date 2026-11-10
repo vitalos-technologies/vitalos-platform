@@ -390,14 +390,17 @@
     @apply bg-white/70 text-cobalt-700 dark:bg-slate-900/60 dark:text-cobalt-300;
   }
 
-  /* Settings: a sticky section menu on the left from lg, a scrollable row of links above the panel below (at md
-     the 16rem sidebar would leave the panel too narrow beside a menu). */
+  /* Settings and Account & security (partials/settings_layout.html): a sticky section menu on the left from lg, a
+     scrollable row of links above the panel below (at md the 16rem sidebar would leave the panel too narrow beside a
+     menu). In the row, the padding keeps a focused link's whole outline inside the scroll box and app.js scrolls the
+     current link into view. */
   .settings-layout {
     @apply lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start lg:gap-8;
   }
   .settings-menu {
-    @apply relative mb-6 flex gap-1 overflow-x-auto border-b border-slate-200 pb-2 lg:sticky lg:top-20 lg:mb-0 lg:block
-      lg:space-y-5 lg:overflow-visible lg:border-b-0 lg:pb-0 dark:border-slate-800;
+    @apply relative mb-6 flex gap-1 overflow-x-auto border-b border-slate-200 pb-2 max-lg:-mx-1 max-lg:scroll-px-1
+      max-lg:px-1 max-lg:pt-1 lg:sticky lg:top-20 lg:mb-0 lg:block lg:space-y-5 lg:overflow-visible lg:border-b-0
+      lg:pb-0 dark:border-slate-800;
   }
   .settings-menu-group {
     @apply flex shrink-0 lg:block;

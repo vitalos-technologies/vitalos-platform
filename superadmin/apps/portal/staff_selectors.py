@@ -1,12 +1,13 @@
 """Staff-side reads for the Client portal admin. Staff see everything, including internal-only fields, so these
-are used ONLY by views behind ``staff_required`` (never by customer views, search, AI or notifications)."""
+are used ONLY by staff views (``staff_required``, or the AI & Data pages, which need the same SuperAdmin or
+ServiceLead role), never by customer views, search, AI or notifications."""
 
 from __future__ import annotations
 
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 
-from . import selectors
 from .models import (
+    Approval,
     BriefStatus,
     BriefVersion,
     Challenge,
@@ -23,23 +24,27 @@ from .models import (
 )
 
 
+def awaiting_decision_versions():
+    """Deliverable versions waiting for a customer decision, in one query: the latest shared, not withdrawn
+    version of its deliverable, needing approval, with no review decision (approved or changes requested).
+    This is ``selectors.version_state(v) == "pending"`` on the latest version, written as a set."""
+    shared = DeliverableVersion.objects.filter(shared_at__isnull=False, withdrawn_at__isnull=True)
+    newer = shared.filter(deliverable=OuterRef("deliverable"), number__gt=OuterRef("number"))
+    decided = Approval.objects.filter(
+        version=OuterRef("pk"),
+        kind=Approval.Kind.REVIEW,
+        decision__in=[Approval.Decision.APPROVED, Approval.Decision.CHANGES],
+    )
+    return shared.filter(requires_approval=True).exclude(Exists(newer)).exclude(Exists(decided))
+
+
 def outstanding_decisions() -> dict:
     """What is waiting on customers, across every organisation."""
-    versions = []
-    for v in (
-        DeliverableVersion.objects.select_related("deliverable__project__challenge__organisation")
-        .filter(shared_at__isnull=False, withdrawn_at__isnull=True, requires_approval=True)
-        .order_by("shared_at")
-    ):
-        latest = (
-            DeliverableVersion.objects.filter(
-                deliverable=v.deliverable, shared_at__isnull=False, withdrawn_at__isnull=True
-            )
-            .order_by("-number")
-            .first()
-        )
-        if latest and latest.pk == v.pk and selectors.version_state(v) == "pending":
-            versions.append(v)
+    versions = list(
+        awaiting_decision_versions()
+        .select_related("deliverable__project__challenge__organisation")
+        .order_by("shared_at", "id")
+    )
     return {
         "versions": versions,
         "briefs": BriefVersion.objects.select_related("challenge__organisation").filter(

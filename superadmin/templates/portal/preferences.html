@@ -28,7 +28,7 @@
             <p class="help" id="push-prefs-help">
               {% if not push_available %}Notifications on devices aren't available yet. These choices apply once they are.
               {% elif push_devices %}These apply to {{ push_devices }} device{{ push_devices|pluralize }} where you turned notifications on. A notification says only what kind of thing happened, never names or details.
-              {% else %}Turn notifications on for a device from <a href="{% purl 'account' %}#device">Notifications on this device</a>. A notification says only what kind of thing happened, never names or details.{% endif %}
+              {% else %}Turn notifications on for a device from <a href="{% purl 'account_device' %}">Notifications on this device</a>. A notification says only what kind of thing happened, never names or details.{% endif %}
             </p>
           </fieldset>
         </div>

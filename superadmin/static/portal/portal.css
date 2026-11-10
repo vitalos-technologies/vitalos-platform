@@ -1465,9 +1465,9 @@ code,
 }
 
 /*
- * Account settings: a section menu beside the content. Real links with aria-current (the Account page's sections
- * are anchors; Notification preferences is its own page). At 52rem or narrower the menu becomes a scrollable chip
- * row that stays at the top of the screen, above the content and well clear of the bottom tab bar.
+ * Account settings: a section menu beside the content, one page per section. Real links with aria-current. The menu
+ * is sticky beside the content; at 52rem or narrower it becomes a scrollable chip row above the content (portal.js
+ * scrolls the current chip into view), well clear of the bottom tab bar.
  */
 .settings {
   display: grid;
@@ -1540,9 +1540,6 @@ code,
   display: grid;
   gap: 1.25rem;
 }
-.settings__content > .card {
-  scroll-margin-top: 1.5rem;
-}
 .settings__intro {
   margin: 0.3rem 0 1rem;
   color: var(--aid-muted);
@@ -1576,19 +1573,16 @@ code,
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
-  /* A full-width band behind the chips (painted by the shadow, clipped to the band), so content scrolls under it. */
   .settings__nav {
-    top: env(safe-area-inset-top, 0px);
-    z-index: 20;
-    padding: 0.5rem 0;
-    background: var(--aid-bg);
-    box-shadow: 0 0 0 100vmax var(--aid-bg), 0 1px 0 100vmax var(--aid-border);
-    clip-path: inset(0 -100vmax -1px);
+    position: static;
   }
+  /* The padding keeps a focused chip's whole outline inside the scrolling row; the margin keeps chips aligned. */
   .settings__menu {
     flex-direction: row;
     gap: 0.5rem;
-    padding: 0.25rem 0.125rem;
+    margin: 0 -0.375rem;
+    padding: 0.375rem;
+    scroll-padding-inline: 0.375rem;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-snap-type: x proximity;
@@ -1621,9 +1615,6 @@ code,
     background: var(--aid-action);
     border-color: var(--aid-action);
     color: var(--aid-action-text);
-  }
-  .settings__content > .card {
-    scroll-margin-top: 4.75rem;
   }
 }
 

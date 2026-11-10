@@ -176,86 +176,22 @@
     }
   });
 
-  // Account settings menu: on the Account page its links are anchors to the sections, so the item for the section in
-  // view carries aria-current (the server marks Profile, the top one). A section reached from the menu stays marked
-  // until the reader scrolls, even when it is too short to reach the top of the screen.
-  var settingsNav = document.querySelector("[data-settings-nav]");
-  var spy = [];
-  if (settingsNav) {
-    settingsNav.querySelectorAll("a[data-section]").forEach(function (link) {
-      if (!link.hash || link.pathname !== window.location.pathname) return;
-      var section = document.getElementById(link.hash.slice(1));
-      if (section) spy.push({ link: link, section: section });
-    });
+  // Account settings menu: one page per section, and the server marks the current item with aria-current. At 52rem or
+  // narrower the menu is a scrollable chip row. Bring a chip fully into view there without moving the page: the
+  // current one on load, and any chip that takes keyboard focus (browsers leave a partly visible one where it is,
+  // cutting off its focus ring).
+  function revealChip(chip) {
+    var row = chip && chip.closest(".settings__menu");
+    if (!row || row.scrollWidth <= row.clientWidth) return;
+    var box = row.getBoundingClientRect();
+    var rect = chip.getBoundingClientRect();
+    if (rect.left < box.left + 8) row.scrollLeft -= box.left + 8 - rect.left;
+    else if (rect.right > box.right - 8) row.scrollLeft += rect.right - (box.right - 8);
   }
-  if (spy.length > 1) {
-    var settingsMenu = settingsNav.querySelector(".settings__menu");
-    var held = null;
-    var markSection = function (entry) {
-      spy.forEach(function (item) {
-        if (item === entry) item.link.setAttribute("aria-current", "page");
-        else item.link.removeAttribute("aria-current");
-      });
-      // In the chip row, bring the marked chip into view without moving the page.
-      if (settingsMenu && settingsMenu.scrollWidth > settingsMenu.clientWidth) {
-        var left = entry.link.parentNode.offsetLeft - settingsMenu.offsetLeft;
-        var right = left + entry.link.offsetWidth;
-        if (left < settingsMenu.scrollLeft || right > settingsMenu.scrollLeft + settingsMenu.clientWidth) {
-          settingsMenu.scrollLeft = Math.max(0, left - 16);
-        }
-      }
-    };
-    var byHash = function () {
-      for (var i = 0; i < spy.length; i++) if ("#" + spy[i].section.id === window.location.hash) return spy[i];
-      return null;
-    };
-    var inView = function () {
-      var line = Math.min(window.innerHeight * 0.35, 260);
-      var pick = spy[0];
-      spy.forEach(function (item) {
-        if (item.section.getBoundingClientRect().top <= line) pick = item;
-      });
-      var bottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-      return bottom ? spy[spy.length - 1] : pick;
-    };
-    var queued = false;
-    window.addEventListener(
-      "scroll",
-      function () {
-        if (held || queued) return;
-        queued = true;
-        window.requestAnimationFrame(function () {
-          queued = false;
-          markSection(inView());
-        });
-      },
-      { passive: true }
-    );
-    // The reader's own scrolling releases a section chosen from the menu.
-    ["wheel", "touchstart", "keydown"].forEach(function (name) {
-      window.addEventListener(
-        name,
-        function (event) {
-          if (name === "keydown" && event.target.closest && event.target.closest("[data-settings-nav]")) return;
-          held = null;
-        },
-        { passive: true }
-      );
-    });
-    window.addEventListener("hashchange", function () {
-      held = byHash();
-      if (held) markSection(held);
-    });
-    spy.forEach(function (item) {
-      // The same anchor again fires no hashchange.
-      item.link.addEventListener("click", function () {
-        held = item;
-        markSection(item);
-      });
-    });
-    held = byHash();
-    markSection(held || inView());
-  }
+  revealChip(document.querySelector('[data-settings-nav] a[aria-current="page"]'));
+  document.addEventListener("focusin", function (event) {
+    if (event.target.closest && event.target.closest("[data-settings-nav]")) revealChip(event.target);
+  });
 
   // Installable app (ADR-056, Phase 1). The server sets data-sw on <html> only on the customer surface (the portal
   // host or the local /portal/ mount), never in staff preview. The worker caches public static files and the
@@ -275,7 +211,7 @@
     else window.addEventListener("load", register);
   }
 
-  // "Install the app" on the Account page. The server shows the manual steps; this swaps in what fits the device.
+  // Account › Install the app. The server shows the manual steps; this swaps in what fits the device.
   // No automatic banner anywhere: the browser's own install prompt is held until the customer asks for it here.
   var install = document.querySelector("[data-install]");
   var deferredPrompt = null;
@@ -335,7 +271,7 @@
       if (endpoint) window.localStorage.setItem(ENDPOINT_KEY, endpoint);
       else window.localStorage.removeItem(ENDPOINT_KEY);
     } catch (error) {
-      // Private mode or blocked storage: rotation is then picked up from the Account page instead.
+      // Private mode or blocked storage: rotation is then picked up from Notifications on this device instead.
     }
   }
   function withTimeout(promise) {

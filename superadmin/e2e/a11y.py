@@ -56,6 +56,9 @@ PAGES = [
     "/products/",
     "/products/askbridge/",
     "/settings/content/",
+    "/account/",
+    "/account/password/",
+    "/account/two-step/",
 ]
 # Relay (apps/relay). Ids are the fixed sample conversation and team answer in apps/relay/fake.py.
 RELAY_PAGES = [
