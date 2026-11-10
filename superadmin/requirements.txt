@@ -51,11 +51,11 @@ django-environ==0.14.0
     # via -r requirements.in
 django-htmx==1.29.0
     # via -r requirements.in
-django-otp==1.7.4
+django-otp==1.7.5
     # via -r requirements.in
 django-simple-history==3.13.0
     # via -r requirements.in
-django-storages==1.14.6
+django-storages[s3]==1.14.6
     # via -r requirements.in
 djangorestframework==3.18.3
     # via
@@ -101,7 +101,7 @@ opentelemetry-api==1.45.1
     # via anthropic
 packaging==26.3
     # via django-csp
-psycopg==3.3.6
+psycopg[binary]==3.3.6
     # via -r requirements.in
 psycopg-binary==3.3.6
     # via psycopg
@@ -129,7 +129,7 @@ rpds-py==2026.9.1
     #   referencing
 s3transfer==0.19.2
     # via boto3
-sentry-sdk==2.71.0
+sentry-sdk==2.73.0
     # via -r requirements.in
 six==1.17.0
     # via python-dateutil
