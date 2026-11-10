@@ -3,12 +3,14 @@ production settings checks."""
 
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 from django.core.cache import cache
 from django.test import Client
+from django.utils import timezone
 
-from apps.content_sync import signing
+from apps.content_sync import api, signing
 from config import content_validation
 
 from .content_helpers import configure, open_site, signed_get
@@ -67,7 +69,11 @@ def test_non_ascii_preview_tokens_are_refused():
         signing.verify_preview_token("ÿÿÿ.ÿÿÿ", "post", "00000000-0000-4000-8000-000000000101")
 
 
-def test_slug_misses_do_not_use_up_the_read_limit(client: Client, settings):
+def test_slug_misses_do_not_use_up_the_read_limit(client: Client, settings, monkeypatch):
+    # The read limits count per wall-clock minute; hold the clock still so the 37 calls below can't
+    # straddle a minute boundary and reset the buckets halfway through.
+    frozen = timezone.now()
+    monkeypatch.setattr(api, "timezone", SimpleNamespace(now=lambda: frozen))
     open_site()
     settings.CONTENT_READ_RATE_LIMIT = 3
     for index in range(15):

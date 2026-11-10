@@ -68,7 +68,9 @@ describe("POST /api/content/revalidate", () => {
   const harness = (keys: SigningKey[] = [revalidateKey]) => {
     const deps = {
       keys,
-      limiter: new MemoryRateLimiter(),
+      // The limiter's fixed one-minute window reads the test clock, not the wall clock: 121 calls
+      // that crossed a minute boundary used to reset the count and get 200 instead of 429.
+      limiter: new MemoryRateLimiter(() => now * 1000),
       revalidateTag: vi.fn(),
       revalidatePath: vi.fn(),
       warm: vi.fn(),
