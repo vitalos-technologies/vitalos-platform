@@ -102,6 +102,12 @@ describe("header model", () => {
         href: "/products/askbridge",
         icon: "gauge",
       },
+      {
+        label: "Relay — social media publishing",
+        description: "Built and operated by Vitalos",
+        href: "/products/relay",
+        icon: "gauge",
+      },
     ]);
     expect(products?.more).toEqual({ label: "All products", href: "/products" });
     // Who We Are stays within the What We Do panel's width: at most three columns.

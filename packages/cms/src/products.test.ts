@@ -16,11 +16,12 @@ describe("products", () => {
     }
   });
 
-  it("lists Fauward, then SOB Autofix, then Askbridge", () => {
+  it("lists Fauward, then SOB Autofix, then Askbridge, then Relay", () => {
     expect(products.map((product) => product.slug)).toEqual([
       "fauward",
       "sob-autofix",
       "askbridge",
+      "relay",
     ]);
   });
 
@@ -125,5 +126,32 @@ describe("Askbridge", () => {
     expect(text).not.toMatch(/customers? (say|use)|case stud|harbour lettings/i);
     expect(text).not.toMatch(/calendar|books? viewings/i);
     expect(text).not.toMatch(/languages|multilingual/i);
+  });
+});
+
+describe("Relay", () => {
+  const relay = productBySlug("relay")!;
+
+  it("is at /products/relay, with its menu label and site", () => {
+    expect(productPath(relay)).toBe("/products/relay");
+    expect(relay.navLabel).toBe("Relay — social media publishing");
+    expect(relay.url).toBe("https://relay.vitalos.co.uk");
+    expect(relay.sector).toBe("Social media");
+    // The snapshot is a capture of an example workspace: the caption says so.
+    expect(relay.snapshotCaption).toMatch(/sample data/);
+  });
+
+  it("states only the verified claims (docs/content/DISCOVERY-relay.md)", () => {
+    const text = JSON.stringify(relay);
+    expect(text).toContain("One calendar for every brand and channel.");
+    // Claims the evidence does not support, or the template does not allow, stay out: no plan
+    // prices, trial or allowances; no named networks (each waits on its provider's approval); no
+    // listening, automation, integrations or MCP (Professional-only, not on this page); no
+    // customers or results (the showcase workspace is synthetic); not the legacy chat assistant.
+    expect(text).not.toMatch(/£|trial|free|per user|allowance|unlimited/i);
+    expect(text).not.toMatch(/instagram|facebook|linkedin|tiktok|threads|youtube|bluesky|\bx\b/i);
+    expect(text).not.toMatch(/listening|automation|integrations?|mcp/i);
+    expect(text).not.toMatch(/customers? (say|use)|case stud|lumen lane|bakery/i);
+    expect(text).not.toMatch(/website assistant|vitalos\.co\.uk chat|askbridge/i);
   });
 });

@@ -10,7 +10,7 @@ test.use({ reducedMotion: "reduce" });
 const isDesktop = (width: number | undefined) => (width ?? 0) >= 1024;
 
 test.describe("Products", () => {
-  test("Who We Are lists Products: the heading to /products, then Fauward, SOB Autofix and Askbridge", async ({
+  test("Who We Are lists Products: the heading to /products, then Fauward, SOB Autofix, Askbridge and Relay", async ({
     page,
   }) => {
     await page.goto("/");
@@ -27,17 +27,25 @@ test.describe("Products", () => {
       await expect(sob).toHaveAttribute("href", "/products/sob-autofix");
       const askbridge = panel.getByRole("link", { name: /^Askbridge — AI website assistant/ });
       await expect(askbridge).toHaveAttribute("href", "/products/askbridge");
-      // Fauward first, then SOB Autofix, then Askbridge.
+      const relay = panel.getByRole("link", { name: /^Relay — social media publishing/ });
+      await expect(relay).toHaveAttribute("href", "/products/relay");
+      // Fauward first, then SOB Autofix, then Askbridge, then Relay.
       const hrefs = await panel
         .locator('a[href^="/products/"]')
         .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-      expect(hrefs).toEqual(["/products/fauward", "/products/sob-autofix", "/products/askbridge"]);
+      expect(hrefs).toEqual([
+        "/products/fauward",
+        "/products/sob-autofix",
+        "/products/askbridge",
+        "/products/relay",
+      ]);
       await expectNoA11yViolations(page);
     } else {
       // The mobile sheet renders the same columns; collapsed disclosures hide them from roles.
       await expect(page.locator('header a[href="/products/fauward"]').first()).toBeAttached();
       await expect(page.locator('header a[href="/products/sob-autofix"]').first()).toBeAttached();
       await expect(page.locator('header a[href="/products/askbridge"]').first()).toBeAttached();
+      await expect(page.locator('header a[href="/products/relay"]').first()).toBeAttached();
       await expect(page.locator('header a[href="/products"]').first()).toBeAttached();
     }
   });
@@ -48,7 +56,7 @@ test.describe("Products", () => {
     await expect(page.locator('footer a[href="/products"]')).toHaveText("Products");
   });
 
-  test("/products shows the Fauward, SOB Autofix and Askbridge cards, each with its snapshot and page", async ({
+  test("/products shows the Fauward, SOB Autofix, Askbridge and Relay cards, each with its snapshot and page", async ({
     page,
   }) => {
     const response = await page.goto("/products");
@@ -82,11 +90,20 @@ test.describe("Products", () => {
       "href",
       "/products/askbridge",
     );
-    // The three cards in order, then the closing card.
+    await expect(main.getByRole("heading", { level: 2, name: "Relay" })).toHaveCount(1);
+    await expect(
+      main.getByRole("img", { name: /^Relay's Overview dashboard for an example workspace/ }),
+    ).toBeVisible();
+    await expect(main.getByRole("link", { name: "View Relay" })).toHaveAttribute(
+      "href",
+      "/products/relay",
+    );
+    // The four cards in order, then the closing card.
     await expect(main.getByRole("heading", { level: 2 })).toHaveText([
       "Fauward",
       "SOB Autofix",
       "Askbridge",
+      "Relay",
       /.+/,
     ]);
     await expectNoA11yViolations(page);
@@ -130,6 +147,36 @@ test.describe("Products", () => {
     await expect(cta).toHaveAttribute("rel", "noopener");
     await expect(cta).not.toHaveAttribute("target", /.+/);
     await expect(cta).toHaveAttribute("data-product", "askbridge");
+    await expectNoA11yViolations(page);
+    await expectNoHorizontalOverflowAt320(page);
+  });
+
+  test("/products/relay: the sentence, the sample-data snapshot, and relay.vitalos.co.uk in the same tab", async ({
+    page,
+  }) => {
+    const response = await page.goto("/products/relay");
+    expect(response?.status()).toBe(200);
+    await expect(page).toHaveTitle("Relay: Social Media Publishing for Teams | Vitalos");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Relay");
+    const main = page.locator("main");
+    await expect(main).toContainText("Products · Social media");
+    await expect(main).toContainText(
+      "Vitalos builds and operates Relay, a social media publishing platform for teams.",
+    );
+    await expect(main).toContainText("with sample data");
+    await expect(
+      main.getByRole("img", { name: /^Relay's Overview dashboard for an example workspace/ }),
+    ).toBeVisible();
+    const cta = page.getByRole("link", { name: "Open relay.vitalos.co.uk" });
+    await expect(cta).toHaveAttribute("href", "https://relay.vitalos.co.uk");
+    await expect(cta).toHaveAttribute("rel", "noopener");
+    await expect(cta).not.toHaveAttribute("target", /.+/);
+    await expect(cta).toHaveAttribute("data-product", "relay");
+    const graph = JSON.parse(
+      (await page.locator('script[type="application/ld+json"]').first().textContent()) ?? "{}",
+    ) as { "@graph": { "@type": string; url?: string }[] };
+    const software = graph["@graph"].find((node) => node["@type"] === "SoftwareApplication");
+    expect(software?.url).toBe("https://relay.vitalos.co.uk");
     await expectNoA11yViolations(page);
     await expectNoHorizontalOverflowAt320(page);
   });

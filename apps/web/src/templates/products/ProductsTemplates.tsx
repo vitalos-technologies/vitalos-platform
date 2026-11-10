@@ -90,6 +90,16 @@ export const pointIcons: Readonly<Record<string, IconName>> = {
   services: "target",
   "product-questions": "search",
   "support-teams": "chip",
+  // Relay
+  calendar: "table",
+  "per-network": "layers",
+  collaboration: "users",
+  "social-inbox": "mail",
+  analytics: "chart",
+  assistant: "chip",
+  teams: "person",
+  brands: "flag",
+  "customer-care": "check",
 };
 
 const withIcon = (point: ProductPoint) => ({

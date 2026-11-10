@@ -106,6 +106,17 @@ export const mediaSlots = [
     alt: "Askbridge homepage: the headline beside an example chat with numbered sources and a team member joining",
     mobile: { ratio: "5:7", size: [733, 1026] },
   },
+  {
+    id: "products.relay.hero",
+    page: "/products/relay (and its card on /products)",
+    section: "Snapshot",
+    ratio: "16:9",
+    size: [2030, 1142],
+    brief:
+      "Relay's own capture of its Overview dashboard in a synthetic showcase workspace (example bakery brands, simulated figures), the same image relay.vitalos.co.uk shows in its hero (marketing/overview-light.webp, 2560 x 1600). Cropped to 16:9 from the top; the phone version is the Overview and Upcoming panels cropped from it at 5:7.",
+    alt: "Relay's Overview dashboard for an example workspace: scheduled and in-review counts, upcoming posts across several networks, and channel health",
+    mobile: { ratio: "5:7", size: [733, 1026] },
+  },
 ] as const satisfies readonly MediaSlotEntry[];
 
 export type MediaSlotId = (typeof mediaSlots)[number]["id"];

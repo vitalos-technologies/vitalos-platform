@@ -77,6 +77,13 @@ describe("product template", () => {
     expect(markup).toMatch(/href="https:\/\/askbridge\.vitalos\.co\.uk"[^>]*rel="noopener"/);
   });
 
+  it("shows the Relay dashboard snapshot, captioned as sample data, and links to its site", () => {
+    const markup = html(<ProductTemplate product={productBySlug("relay")!} />);
+    expect(markup).toContain("Overview dashboard for an example workspace");
+    expect(markup).toContain("with sample data");
+    expect(markup).toMatch(/href="https:\/\/relay\.vitalos\.co\.uk"[^>]*rel="noopener"/);
+  });
+
   it("still shows Fauward's tenant portal snapshot", () => {
     expect(html(<ProductTemplate product={fauward} />)).toContain(
       "Fauward tenant portal: the operations dashboard, with the finance and Fauward Go screens behind it",
@@ -85,12 +92,14 @@ describe("product template", () => {
 });
 
 describe("products index", () => {
-  it("shows Fauward, then SOB Autofix, then Askbridge", () => {
+  it("shows Fauward, then SOB Autofix, then Askbridge, then Relay", () => {
     const markup = html(<ProductsIndexTemplate page={null} products={products} />);
     expect(markup.indexOf("View Fauward")).toBeGreaterThan(-1);
     expect(markup.indexOf("View Fauward")).toBeLessThan(markup.indexOf("View SOB Autofix"));
     expect(markup).toContain('href="/products/sob-autofix"');
     expect(markup.indexOf("View SOB Autofix")).toBeLessThan(markup.indexOf("View Askbridge"));
     expect(markup).toContain('href="/products/askbridge"');
+    expect(markup.indexOf("View Askbridge")).toBeLessThan(markup.indexOf("View Relay"));
+    expect(markup).toContain('href="/products/relay"');
   });
 });

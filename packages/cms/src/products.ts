@@ -327,6 +327,96 @@ export const products: readonly ProductView[] = [
       },
     ],
   },
+  // Every claim maps to a line in docs/content/DISCOVERY-relay.md (the live site,
+  // relay.vitalos.co.uk, 10 Nov 2026): its capability strip and four product cards, its "plan,
+  // publish, reply and learn" flow (four steps here) and the people it names. Not the older chat
+  // assistant also called Relay in this repo (now "Site assistant (legacy)", ADR-044 addendum).
+  // No prices, trial, allowances or networks' approval states.
+  {
+    slug: "relay",
+    name: "Relay",
+    navLabel: "Relay — social media publishing",
+    navDescription: "Built and operated by Vitalos",
+    summary:
+      "Social media publishing, a shared inbox and an AI assistant for teams, built and operated by Vitalos.",
+    description: "Vitalos builds and operates Relay, a social media publishing platform for teams.",
+    url: "https://relay.vitalos.co.uk",
+    urlLabel: "Open relay.vitalos.co.uk",
+    viewLabel: "View Relay",
+    snapshotCaption: "The Relay Overview dashboard in an example workspace, with sample data.",
+    applicationCategory: "BusinessApplication",
+    seo: {
+      title: "Relay: Social Media Publishing for Teams",
+      description:
+        "Relay is the social media platform Vitalos builds and operates: plan and schedule posts, reply from one inbox and draft with an AI assistant.",
+    },
+    sector: "Social media",
+    sections: [
+      {
+        heading: "What it does",
+        layout: "cards",
+        points: [
+          {
+            key: "calendar",
+            title: "Shared calendar",
+            text: "One calendar for every brand and channel.",
+          },
+          {
+            key: "per-network",
+            title: "Write once",
+            text: "Tailored per network, checked for length, media and fields.",
+          },
+          {
+            key: "collaboration",
+            title: "Team collaboration",
+            text: "Comments, tasks and approvals in context.",
+          },
+          {
+            key: "social-inbox",
+            title: "Social inbox",
+            text: "Comments, messages and reviews from supported networks, in one queue.",
+          },
+          {
+            key: "analytics",
+            title: "Analytics with coverage",
+            text: "See what works; missing data shows as missing.",
+          },
+          {
+            key: "assistant",
+            title: "AI assistant",
+            text: "Drafts within your permissions; publishing always needs approval.",
+          },
+        ],
+      },
+      {
+        heading: "How it works",
+        layout: "steps",
+        points: [
+          { title: "Plan", text: "Write, tailor and schedule on a shared calendar." },
+          { title: "Publish", text: "Approvals before anything goes out." },
+          { title: "Reply", text: "Assign, add notes, reply where each network allows." },
+          { title: "Learn", text: "See what works by channel and post." },
+        ],
+      },
+      {
+        heading: "Built for",
+        layout: "tiles",
+        points: [
+          { key: "teams", title: "Teams", text: "Plan, publish and reply together." },
+          {
+            key: "brands",
+            title: "Several brands",
+            text: "Every brand and channel on one calendar.",
+          },
+          {
+            key: "customer-care",
+            title: "Customer care",
+            text: "Assignment, internal notes and reply drafts.",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export const productBySlug = (slug: string): ProductView | undefined =>
