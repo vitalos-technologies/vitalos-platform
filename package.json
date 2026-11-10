@@ -48,15 +48,15 @@
     "seo:check": "node --no-warnings tooling/seo/seo-check.mjs"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.13.0",
-    "@playwright/test": "1.64.0",
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.64.1",
     "@vitalos/eslint-config": "workspace:*",
-    "dependency-cruiser": "18.5.0",
-    "lighthouse": "13.5.0",
+    "dependency-cruiser": "18.7.0",
+    "lighthouse": "13.6.0",
     "parse5": "8.0.1",
     "prettier": "3.9.10",
-    "turbo": "2.11.7",
+    "turbo": "2.11.10",
     "typescript": "6.0.3",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   }
 }

@@ -12,7 +12,7 @@
     "email:gallery": "NODE_OPTIONS=--conditions=react-server tsx scripts/email-gallery.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.117.3",
+    "@supabase/supabase-js": "2.118.0",
     "@vercel/analytics": "2.0.1",
     "@vercel/speed-insights": "2.0.0",
     "@vitalos/cms": "workspace:*",
@@ -26,22 +26,22 @@
     "@vitalos/security": "workspace:*",
     "@vitalos/ui": "workspace:*",
     "@vitalos/validation": "workspace:*",
-    "geist": "1.7.2",
+    "geist": "1.8.2",
     "github-slugger": "2.0.0",
     "hast-util-to-string": "3.0.1",
-    "next": "16.4.2",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "rehype-sanitize": "6.0.0",
     "rehype-stringify": "10.0.1",
     "remark-gfm": "4.0.1",
     "remark-parse": "11.0.0",
     "remark-rehype": "11.1.2",
-    "shiki": "4.4.3",
-    "styled-components": "6.5.3",
+    "shiki": "4.5.0",
+    "styled-components": "6.6.0",
     "unified": "11.0.5",
-    "unist-util-visit": "5.0.0",
-    "zod": "4.6.6"
+    "unist-util-visit": "5.2.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
@@ -52,13 +52,13 @@
     "@types/react-dom": "19.3.0",
     "@vitalos/eslint-config": "workspace:*",
     "@vitalos/typescript-config": "workspace:*",
-    "eslint": "10.12.0",
-    "eslint-config-next": "16.4.2",
+    "eslint": "10.13.0",
+    "eslint-config-next": "16.4.3",
     "openapi-typescript": "7.13.0",
     "prettier": "3.9.10",
     "tailwindcss": "4.3.3",
-    "tsx": "4.23.13",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   }
 }

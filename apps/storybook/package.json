@@ -10,25 +10,25 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@storybook/addon-a11y": "10.6.2",
-    "@storybook/react-vite": "10.6.2",
+    "@storybook/addon-a11y": "10.6.5",
+    "@storybook/react-vite": "10.6.5",
     "@vitalos/design-tokens": "workspace:*",
     "@vitalos/relay-core": "workspace:*",
     "@vitalos/relay-widget": "workspace:*",
     "@vitalos/ui": "workspace:*",
-    "geist": "1.7.2",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "storybook": "10.6.2"
+    "geist": "1.8.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "storybook": "10.6.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
     "@types/react": "19.3.0",
     "@vitalos/eslint-config": "workspace:*",
     "@vitalos/typescript-config": "workspace:*",
-    "eslint": "10.12.0",
+    "eslint": "10.13.0",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   }
 }
