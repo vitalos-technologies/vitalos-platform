@@ -22,6 +22,7 @@ class ProductAccess(models.Model):
             ),
             ("open_tipsignal_superadmin", "Can see TipSignal details and open the TipSignal Superadmin"),
             ("open_autofix_superadmin", "Can see Pitline details and open the Pitline Superadmin"),
+            ("open_relay_superadmin", "Can see Relay details and open the Relay Superadmin"),
         ]
 
     def __str__(self):

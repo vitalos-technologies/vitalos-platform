@@ -248,6 +248,16 @@ AUTOFIX_STATUS_URL = env(
 ).strip()
 AUTOFIX_STATUS_TOKEN = env("AUTOFIX_STATUS_TOKEN", default="")
 AUTOFIX_SUPERADMIN_URL = env("AUTOFIX_SUPERADMIN_URL", default="https://pitline.co.uk/superadmin/").strip()
+# Relay, the social media publishing product (relay.vitalos.co.uk), serves the ADR-044 contract
+# (ADR-044 addendum). RELAY_PRODUCT_ keeps these apart from the legacy site assistant's RELAY_* settings.
+# The token stays empty ("Status not configured", no request) until the owner sets the secret.
+RELAY_PRODUCT_STATUS_URL = env(
+    "RELAY_PRODUCT_STATUS_URL", default="https://relay.vitalos.co.uk/api/platform/v1/status"
+).strip()
+RELAY_PRODUCT_STATUS_TOKEN = env("RELAY_PRODUCT_STATUS_TOKEN", default="")
+RELAY_PRODUCT_SUPERADMIN_URL = env(
+    "RELAY_PRODUCT_SUPERADMIN_URL", default="https://relay.vitalos.co.uk/admin/platform"
+).strip()
 # Forgot-password emails only make sense when mail can actually be delivered (or locally).
 PASSWORD_RESET_ENABLED = env.bool(
     "PASSWORD_RESET_ENABLED", default=EMAIL_TRANSPORT != "log" or APP_ENVIRONMENT == "development"

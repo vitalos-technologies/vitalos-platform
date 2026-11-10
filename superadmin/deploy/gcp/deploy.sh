@@ -46,9 +46,11 @@
 #   secrets          CONTENT_READ_CLIENT_KEYS, CAREERS_SUBMIT_CLIENT_KEYS, CONTENT_REVALIDATE_SECRET,
 #                    CONTENT_RENDER_SECRET, CONTENT_PREVIEW_SECRET, CONTENT_IP_SALT
 # Optional Product Pipeline settings (docs/DEPLOY.md section 10, ADR-044), same rules:
-#   plain variables  ASKBRIDGE_STATUS_URL, ASKBRIDGE_SUPERADMIN_URL, AUTOFIX_STATUS_URL, AUTOFIX_SUPERADMIN_URL
-#   secrets          ASKBRIDGE_STATUS_TOKEN, AUTOFIX_STATUS_TOKEN
-#   (AUTOFIX_* configure Pitline, formerly Autofix; the names and the secret autofix-status-token are kept)
+#   plain variables  ASKBRIDGE_STATUS_URL, ASKBRIDGE_SUPERADMIN_URL, AUTOFIX_STATUS_URL, AUTOFIX_SUPERADMIN_URL,
+#                    RELAY_PRODUCT_STATUS_URL, RELAY_PRODUCT_SUPERADMIN_URL
+#   secrets          ASKBRIDGE_STATUS_TOKEN, AUTOFIX_STATUS_TOKEN, RELAY_PRODUCT_STATUS_TOKEN
+#   (AUTOFIX_* configure Pitline, formerly Autofix; the names and the secret autofix-status-token are kept.
+#   RELAY_PRODUCT_* configure Relay, the social media product, not the legacy site assistant's RELAY_*.)
 # Optional Vitalos AI & Data model settings (ADR-052, docs/ai-data/operations/runbook.md), same rules:
 #   plain variables  AI_DATA_LLM_PROVIDER, AI_DATA_LLM_BASE_URL, AI_DATA_LLM_MODEL, AI_DATA_LLM_EFFORT,
 #                    AI_DATA_DISABLED
@@ -242,6 +244,7 @@ for _name in PRIMARY_OWNER_EMAIL EMAIL_TRANSPORT INBOUND_PROVIDER NOTIFY_OWNER_E
   OUTREACH_MAILBOX OUTREACH_GRAPH_TENANT_ID OUTREACH_GRAPH_CLIENT_ID \
   OUTREACH_SMTP_HOST OUTREACH_SMTP_PORT OUTREACH_SMTP_USER \
   ASKBRIDGE_STATUS_URL ASKBRIDGE_SUPERADMIN_URL AUTOFIX_STATUS_URL AUTOFIX_SUPERADMIN_URL \
+  RELAY_PRODUCT_STATUS_URL RELAY_PRODUCT_SUPERADMIN_URL \
   AI_DATA_LLM_PROVIDER AI_DATA_LLM_BASE_URL AI_DATA_LLM_MODEL AI_DATA_LLM_EFFORT AI_DATA_DISABLED \
   BILLING_PUBLIC_SITE_URL PORTAL_ENABLED PORTAL_FILES_BUCKET; do
   if [ -n "${!_name:-}" ]; then ENV_VARS+=("$_name=${!_name}"); fi
@@ -273,6 +276,7 @@ add_optional_secret RELAY_ADMIN_API_SECRET relay-admin-api-secret
 add_optional_secret RELAY_WEBHOOK_SECRET relay-webhook-secret
 add_optional_secret ASKBRIDGE_STATUS_TOKEN askbridge-status-token
 add_optional_secret AUTOFIX_STATUS_TOKEN autofix-status-token
+add_optional_secret RELAY_PRODUCT_STATUS_TOKEN relay-product-status-token
 add_optional_secret AI_DATA_LLM_API_KEY ai-data-llm-api-key
 add_optional_secret BILLING_STRIPE_SECRET_KEY billing-stripe-secret-key
 add_optional_secret BILLING_STRIPE_WEBHOOK_SECRET billing-stripe-webhook-secret

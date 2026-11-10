@@ -400,7 +400,7 @@ def no_other_superadmins(settings):
 
 def test_pipeline_lists_every_product(client_for, superadmin, askbridge, seeded):
     body = page(client_for, superadmin)
-    for key in ("askbridge", *OTHER_PRODUCTS, "autofix"):
+    for key in ("askbridge", *OTHER_PRODUCTS, "autofix", "relay"):
         assert f'data-product="{key}"' in body and f"products/{key}-app-icon" in body
         assert f"/products/{key}/" in body
     assert "Answerd" in body and "Vitalos Workforce" in body and "TipSignal" in body and "Pitline" in body
@@ -606,6 +606,128 @@ def test_autofix_token_is_never_rendered(client_for, superadmin, autofix, seeded
     for path in ("/products/", "/products/autofix/", "/"):
         body = page(client_for, superadmin, path)
         assert AUTOFIX_TOKEN not in body and "Bearer" not in body and AUTOFIX_STATUS_URL not in body
+
+
+# --- Relay, the social media publishing product (ADR-044 addendum) ------------------------------------------
+
+RELAY_TOKEN = "relay-product-status-token-DO-NOT-RENDER-1357924680"
+RELAY_STATUS_URL = "https://relay.example.test/api/platform/v1/status"
+RELAY_SUPERADMIN_URL = "https://relay.example.test/admin/platform"
+
+
+def relay_payload(**overrides):
+    """What Relay will serve: tenants are workspaces, subscriptions are Relay subscriptions."""
+    body = payload(
+        product="relay",
+        tenants={"total": 20, "active": 14, "trial": 5, "suspended": 1},
+        subscriptions={"active": 11, "trialing": 5, "pastDue": 0},
+        superadminUrl=RELAY_SUPERADMIN_URL,
+    )
+    body.update(overrides)
+    return body
+
+
+@pytest.fixture
+def relay(askbridge, settings, monkeypatch):
+    """Relay configured; its answers come from ``relay.answer``, Askbridge's from the Askbridge stub."""
+    settings.RELAY_PRODUCT_STATUS_URL = RELAY_STATUS_URL
+    settings.RELAY_PRODUCT_STATUS_TOKEN = RELAY_TOKEN
+    settings.RELAY_PRODUCT_SUPERADMIN_URL = RELAY_SUPERADMIN_URL
+    stub = Stub()
+    stub.answer = relay_payload()
+
+    def route(url, token, timeout=client.TIMEOUT_SECONDS):
+        return (stub if url == RELAY_STATUS_URL else askbridge)(url, token, timeout)
+
+    monkeypatch.setattr(client, "fetch_status_json", route)
+    return stub
+
+
+@pytest.fixture
+def relay_operator(make_user):
+    from apps.accounts.roles import VIEWER
+
+    user = make_user(VIEWER, email="relay-operator@example.test")
+    grant(user, "view_product_pipeline", "open_relay_superadmin")
+    return user
+
+
+def test_relay_is_registered_with_its_own_settings():
+    relay = get_product("relay")
+    assert relay.name == "Relay" and relay.endorsement == "by Vitalos"
+    assert relay.summary == "Social media publishing, inbox and AI assistant for teams."
+    assert relay.mark == "products/relay-mark.svg" and relay.app_icon == "products/relay-app-icon.svg"
+    assert relay.open_permission == "products.open_relay_superadmin"
+    # RELAY_PRODUCT_*, never the legacy site assistant's RELAY_* settings.
+    assert (relay.status_url_setting, relay.status_token_setting, relay.superadmin_url_setting) == (
+        "RELAY_PRODUCT_STATUS_URL",
+        "RELAY_PRODUCT_STATUS_TOKEN",
+        "RELAY_PRODUCT_SUPERADMIN_URL",
+    )
+
+
+def test_relay_defaults_point_at_relay_with_no_token():
+    from config.settings import base
+
+    assert base.RELAY_PRODUCT_STATUS_URL == "https://relay.vitalos.co.uk/api/platform/v1/status"
+    assert base.RELAY_PRODUCT_SUPERADMIN_URL == "https://relay.vitalos.co.uk/admin/platform"
+
+
+def test_relay_payload_parses():
+    snapshot = status.parse_status(relay_payload(), get_product("relay"))
+    assert snapshot.product == "relay" and snapshot.status == "operational"
+    assert snapshot.tenants == {"total": 20, "active": 14, "trial": 5, "suspended": 1}
+    assert snapshot.subscriptions == {"active": 11, "trialing": 5, "pastDue": 0}
+    with pytest.raises(status.InvalidStatus):
+        status.parse_status(relay_payload(product="askbridge"), get_product("relay"))
+
+
+def test_relay_card_lists_it_and_shows_status_not_configured_without_a_token(
+    client_for, superadmin, askbridge, seeded
+):
+    index = page(client_for, superadmin)
+    assert 'data-product="relay"' in index and "products/relay-app-icon" in index
+    assert "Social media publishing, inbox and AI assistant for teams." in index
+    detail = page(client_for, superadmin, "/products/relay/")
+    assert "Status not configured" in detail and 'data-testid="product-counts"' not in detail
+    assert "products/relay-mark" in detail
+    assert all(call["url"] == STATUS_URL for call in askbridge.calls)
+
+
+def test_relay_card_shows_live_status(client_for, relay_operator, relay, seeded):
+    detail = page(client_for, relay_operator, "/products/relay/")
+    assert 'data-state="ok:operational"' in detail
+    assert re.search(r'data-testid="tenants-total">20<', detail)
+    assert re.search(r'data-testid="subscriptions-active">11<', detail)
+    assert 'action="/products/relay/open/"' in detail
+    assert relay.calls == [{"url": RELAY_STATUS_URL, "token": RELAY_TOKEN, "timeout": 3.0}]
+
+
+def test_relay_open_redirects_to_its_superadmin_with_audit(client_for, relay_operator, relay, seeded):
+    response = client_for(relay_operator).post("/products/relay/open/")
+    assert response.status_code == 302 and response["Location"] == RELAY_SUPERADMIN_URL
+    event = AuditEvent.objects.get(action="products.superadmin_opened")
+    assert event.entity_id == "relay" and event.summary == "Opened the Relay Superadmin"
+    assert RELAY_TOKEN not in json.dumps(event.metadata)
+
+
+def test_relay_open_needs_its_own_permission(client_for, askbridge_operator, relay, seeded):
+    assert client_for(askbridge_operator).post("/products/relay/open/").status_code == 403
+    grant(askbridge_operator, "open_relay_superadmin")
+    operator = type(askbridge_operator).objects.get(pk=askbridge_operator.pk)
+    assert client_for(operator).post("/products/relay/open/").status_code == 302
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [relay_payload(), client.StatusFetchError("http_503"), ["bad"]],
+    ids=["ok", "unavailable", "bad"],
+)
+def test_relay_token_is_never_rendered(client_for, superadmin, relay, seeded, answer):
+    relay.answer = answer
+    for path in ("/products/", "/products/relay/", "/"):
+        body = page(client_for, superadmin, path)
+        assert RELAY_TOKEN not in body and "Bearer" not in body and RELAY_STATUS_URL not in body
 
 
 # --- product_access command ---------------------------------------------------------------------------

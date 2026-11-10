@@ -28,6 +28,8 @@ from .base import (
     RELAY_ADMIN_API_SECRET,
     RELAY_API_BASE_URL,
     RELAY_CLIENT,
+    RELAY_PRODUCT_STATUS_URL,
+    RELAY_PRODUCT_SUPERADMIN_URL,
     RELAY_WEBHOOK_SECRET,
     RESEND_API_KEY,
     SENTRY_DSN,
@@ -100,6 +102,8 @@ for _name, _url in (
     ("TIPSIGNAL_SUPERADMIN_URL", TIPSIGNAL_SUPERADMIN_URL),
     ("AUTOFIX_STATUS_URL", AUTOFIX_STATUS_URL),
     ("AUTOFIX_SUPERADMIN_URL", AUTOFIX_SUPERADMIN_URL),
+    ("RELAY_PRODUCT_STATUS_URL", RELAY_PRODUCT_STATUS_URL),
+    ("RELAY_PRODUCT_SUPERADMIN_URL", RELAY_PRODUCT_SUPERADMIN_URL),
 ):
     if _url and not _url.startswith("https://"):
         raise ImproperlyConfigured(f"{_name} must be https in production.")

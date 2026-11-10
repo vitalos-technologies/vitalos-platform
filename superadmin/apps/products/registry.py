@@ -135,6 +135,20 @@ PRODUCTS: tuple[Product, ...] = (
         superadmin_url_setting="AUTOFIX_SUPERADMIN_URL",
         open_permission="products.open_autofix_superadmin",
     ),
+    # Relay, the social media publishing product (relay.vitalos.co.uk; ADR-044 addendum). Not the legacy
+    # site assistant (``apps.relay``, labelled "Site assistant (legacy)"): its settings are RELAY_PRODUCT_*.
+    Product(
+        key="relay",
+        name="Relay",
+        endorsement="by Vitalos",
+        summary="Social media publishing, inbox and AI assistant for teams.",
+        mark="products/relay-mark.svg",
+        app_icon="products/relay-app-icon.svg",
+        status_url_setting="RELAY_PRODUCT_STATUS_URL",
+        status_token_setting="RELAY_PRODUCT_STATUS_TOKEN",  # noqa: S106  # nosec B106
+        superadmin_url_setting="RELAY_PRODUCT_SUPERADMIN_URL",
+        open_permission="products.open_relay_superadmin",
+    ),
 )
 
 
