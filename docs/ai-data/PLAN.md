@@ -87,7 +87,7 @@ Update the boxes as work lands. A box is ticked only with evidence in TASKS.md.
 
 ## Checkpoint
 
-_Session handoff, 8 Nov 2026: read [HANDOFF.md](HANDOFF.md) first. Production Super Admin cannot reach its database since 2 Nov (owner step: refresh the Supabase connection strings); #123 and #124 are merged and wait for the next deploy._
+_Session handoff, 10 Nov 2026: read [HANDOFF.md](HANDOFF.md) first. The Super Admin database outage (2–10 Nov) is over; #123 and #124 deployed on 10 Nov (run 41495129964)._
 
 _Last updated: 29 Oct 2026. The connected experience (marketing redesign, guided brief, admin workspace, client portal) is merged as `dd61f63` (vitalos-technologies/vitalos-platform#106) and live, including `portal.vitalos.co.uk`; evidence in `experience/PROGRESS.md`. The billing, `/pay` and Claude provider entries below are from #104._
 

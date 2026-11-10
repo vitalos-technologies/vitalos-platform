@@ -1,42 +1,32 @@
-# Handoff: Vitalos platform, AI & Data and client portal (8 Nov 2026)
+# Handoff: Vitalos platform, AI & Data and client portal (10 Nov 2026)
 
 For the next Claude session. Read this first, then `AGENTS.md` (the authority on approvals), `docs/ai-data/PLAN.md` (Checkpoint), `docs/ai-data/TASKS.md` and the top of the Log in `docs/ai-data/experience/PROGRESS.md`. The earlier handoff for the connected experience (#106) is `docs/ai-data/experience/HANDOFF.md`.
 
 ## 1. State right now
 
-**Production Super Admin is down. It cannot reach its database.**
+**Production is healthy (10 Nov 2026).**
 
-- `https://admin.vitalos.co.uk/healthz/` answers 503 `{"status": "unavailable"}`. The health check runs `SELECT 1` (`apps/core/middleware.py`). Static pages such as `/login/` still render; anything that needs the database fails. The client portal (`portal.vitalos.co.uk`) is the same service and is affected the same way.
-- It started on 2 Nov 2026, between 08:43 UTC (the last good nightly backup, run 41415072857) and 17:00 UTC. Every nightly backup since has failed, and so has every deploy, because the deploy's backup gate fails first.
-- The error, from the backup job (`.github/workflows/backup.yml`), is identical every time, most recently run 42452464503 on 8 Nov 05:52 UTC:
-  `connection to server at "aws-0-eu-west-2.pooler.supabase.com" ... FATAL: (ENOTFOUND) tenant/user backup_reader.uhvcjsnuxdthjfainvmm not found`
-- **The project itself is up.** `https://uhvcjsnuxdthjfainvmm.supabase.co/rest/v1/` answers 401 "No API key", which is a live project. Supabase status showed no incident. So the stored connection strings are what's stale. Most likely the restore moved the project to another pooler cluster (for example `aws-1-eu-west-2.pooler.supabase.com`), or the `backup_reader` role is gone.
-- **The owner said "database is back" on 8 Nov.** A re-run of the deploy straight after still failed at the backup with the same error.
-- **This sandbox can't test it.** Outbound port 5432 is blocked here (only HTTPS goes through the proxy), so you can't `psql` the database. Use the GitHub Actions runs and the public endpoints.
+- `https://admin.vitalos.co.uk/healthz/` returns 200. Keep the trailing slash; `/healthz` without it is 404.
+- The 10 Nov deploy of `main` `2096148` succeeded: Super Admin deploy run 41495129964, attempt 3, after a fresh pre-migration backup. It put these live:
+  - **vitalos-technologies/vitalos-platform#123:** account pages as section menus.
+    - Super Admin Account & security has Profile `/account/`, Password `/account/password/` and Two-step `/account/two-step/`.
+    - Portal Your account has `/account/`, `/account/security/` (with setup at `/account/security/two-step/`), `/account/device/`, `/account/install/` and Notification preferences.
+  - **vitalos-technologies/vitalos-platform#124:** WS-006. AI & Data › Delivery and Operations read client-portal records (counts, "Needs attention" with a 7-day threshold from DECISIONS 137, a projects table, managed-service status with the portal's 72-hour stale rule). It also corrects the VAD-010 row.
+- **Checked after the deploy:** admin `/account/password/`, `/account/two-step/` and `/ai-data/lifecycle/delivery/` redirect to `/login/`; portal `/account/device/` and `/account/security/two-step/` redirect to `/sign-in/`.
 
-**What the owner has to do** (dashboard access, which agents don't have; DEPLOY.md §2.3, §6.1):
+**The outage, 2–10 Nov 2026, for the record.**
 
-1. In Supabase, open project `vitalos-superadmin` (ref `uhvcjsnuxdthjfainvmm`), go to Connect → **Session pooler**, and copy the connection string, noting the host.
-2. GitHub → Settings → Environments → `production`: set `SUPERADMIN_DATABASE_URL` to that string.
-3. In the Supabase SQL editor, run `select rolname from pg_roles where rolname = 'backup_reader';`. If no row comes back, run the SQL in DEPLOY.md §6.1. Then set GitHub → Environments → `backup` → `DATABASE_URL` to the same host with user `backup_reader.uhvcjsnuxdthjfainvmm`.
-4. Tell the session.
+- From 2 Nov (between 08:43 and 17:00 UTC) the Super Admin could not reach its Supabase database:
+  - `/healthz/` returned 503;
+  - nightly backups and deploys failed at the backup gate, with `aws-0-eu-west-2.pooler.supabase.com ... FATAL: (ENOTFOUND) tenant/user backup_reader.uhvcjsnuxdthjfainvmm not found`.
+- The owner restored the Supabase project `vitalos-superadmin` (ref `uhvcjsnuxdthjfainvmm`; the dashboard now shows Healthy). On 10 Nov `/healthz/` was back to 200 and the backup and deploy passed.
+- **If it happens again:**
+  1. Check the project in the Supabase dashboard (paused, restricted, or a changed Session pooler host).
+  2. If the host changed, update the GitHub secrets `SUPERADMIN_DATABASE_URL` (`production`) and `DATABASE_URL` (`backup`); DEPLOY.md §2.3 and §6.1 cover recreating `backup_reader`.
+  3. Re-run the failed deploy.
+- **This sandbox can't connect to Postgres:** outbound 5432 is blocked; only HTTPS goes through the proxy. Diagnose through the Actions logs and the public endpoints.
 
-**What the session does next:**
-
-1. Re-run the failed jobs of the latest **Super Admin deploy** run for `main`: run 41495129964, for `2096148`. It dispatches a fresh backup first, then deploys. The deploy writes the GitHub secret into Secret Manager as a new version, so the new revision reads the new string. A manual `workflow_dispatch` with `confirm=DEPLOY` also works (pre-authorised in AGENTS.md).
-2. Verify:
-   - `/healthz/` (keep the trailing slash; `/healthz` without it is 404) returns 200.
-   - Admin `/account/password/` and `/ai-data/lifecycle/delivery/` redirect to `/login/`.
-   - Portal `/account/device/` and `/account/security/two-step/` redirect to `/sign-in/`. Before the deploy they are 404.
-
-**Merged but not yet live** (waiting on that deploy). Production still runs the 1 Nov image from #119/#120.
-
-- **vitalos-technologies/vitalos-platform#123:** account pages as section menus.
-  - Super Admin Account & security has Profile `/account/`, Password `/account/password/` and Two-step `/account/two-step/`.
-  - Portal Your account has `/account/`, `/account/security/` (with setup at `/account/security/two-step/`), `/account/device/`, `/account/install/` and Notification preferences.
-- **vitalos-technologies/vitalos-platform#124:** WS-006. AI & Data › Delivery and Operations read client-portal records (counts, "Needs attention" with a 7-day threshold from DECISIONS 137, a projects table, managed-service status with the portal's 72-hour stale rule). It also corrects the VAD-010 row (Done, AC-14 run 40972825725).
-
-**Live and verified before the outage** (all on `main`):
+**Also live** (earlier, all on `main`):
 
 | PR   | What                                                                                                                                                                                                                                                 |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -53,7 +43,6 @@ For the next Claude session. Read this first, then `AGENTS.md` (the authority on
 
 ## 2. Owner items still open
 
-- **The database connection strings** (§1). This blocks everything Super Admin.
 - **Rotate the keys** the owner pasted in chat earlier: the Anthropic key, and the Stripe `sk_test`/`pk_test` keys. Never repeat or store their values.
 - **`TURNSTILE_SECRET_KEY`** (production) is still empty, so `/pay/checkout/` relies on the honeypot and rate limits only.
 - **Turning on AI:** "Live model path" and "Website brief assist" in Super Admin › AI settings, then record the spend in AI & Data › Budget.
@@ -92,8 +81,10 @@ For the next Claude session. Read this first, then `AGENTS.md` (the authority on
 
 ## 4. What to pick up next
 
-1. Get the database back (§1), deploy `main`, verify, and send the owner live screenshots of the new account pages and Delivery/Operations.
-2. **Open Dependabot PRs:** vitalos-technologies/vitalos-platform#121 (Python minor/patch), #122 (npm minor/patch) and #91 (GitHub Actions). Review them and merge them if green. The Python one will deploy the Super Admin, so do it after §1.
+1. Ask the owner to look at the new account pages and AI & Data › Delivery/Operations on the live site (signed-in pages need their login; agents only see the sign-in redirect).
+2. **Open Dependabot PRs:**
+   - vitalos-technologies/vitalos-platform#121 (Python minor/patch) and #91 (GitHub Actions): branches updated on 10 Nov. Merge them once green; the Python one deploys the Super Admin.
+   - #122 (npm minor/patch): `e2e`, `e2e-sparse`, `e2e-draft` and `storybook-a11y` failed on 1 Nov (run 41360238059). The bumps include `@axe-core/playwright` 4.14 and `@playwright/test` 1.64.1. Root-cause the failures; don't skip tests or loosen axe.
 3. **Old PRs to triage with the owner** (stale since mid-October): #87 (Health & Care launch pages), #82 (Relay case ID), #70 (sitemap revalidate), #69 (17 Oct review fixes).
 4. **Task register, things Vitalos can build without a customer:**
    - WS-006 still lacks tasks and test cases per milestone and AI-drafted progress summaries with a human approval step.
