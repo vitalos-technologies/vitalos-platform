@@ -589,15 +589,23 @@ Add the mail variables (`EMAIL_TRANSPORT`, `RESEND_API_KEY` as a `secretref:`) a
 
 `manage.py import_insights_batch FOLDER` imports `NN-slug.md` files (YAML front matter, then Markdown) through the editorial workflow and publishes each post with its original date (`docs/content/DECISIONS.md` 126 to 134). It is a dry run unless `--apply` is given, and any problem stops the whole run before anything is written. The image holds only `superadmin/`, so a batch to run in production is committed under `apps/insights/imports/` (batch 2 is `apps/insights/imports/insights-batch-2`, kept identical to `docs/content/imports/insights-batch-2` by a test) and deployed first.
 
-Production runs it as an execution of the release job, which has the app's database and content settings, with the command overridden:
+Production runs it as an execution of the release job, which has the app's database and content settings. **Do not override the command with `job start --image/--command/--args`**: that replaces the container with one that has no environment variables, and Django stops at `DJANGO_SECRET_KEY`. Pass the job's own template with only the command changed, through `--yaml` (the file holds environment entries and secret references, so keep it out of the repo, never print it, and delete it afterwards):
 
 ```sh
 RG=rg-vitalos-superadmin
-BATCH=apps/insights/imports/insights-batch-2
-# 1. Dry run: checks every file and the renderer, writes nothing.
-az containerapp job start -n superadmin-release -g "$RG" --command python --args manage.py import_insights_batch "$BATCH"
-# 2. Import and publish, acting as the owner's admin user (the default --as-user).
-az containerapp job start -n superadmin-release -g "$RG" --command python --args manage.py import_insights_batch "$BATCH" --apply --status published
+umask 077
+az containerapp job show -n superadmin-release -g "$RG" --query properties.template -o json > job.json
+python - <<'EOF'
+import json
+t = json.load(open("job.json"))
+c = t["containers"][0]
+for name, extra in (("dry", []), ("apply", ["--apply", "--status", "published"])):
+    c = {**c, "command": ["python"], "args": ["manage.py", "import_insights_batch", "apps/insights/imports/insights-batch-2", *extra]}
+    json.dump({"containers": [c], **({"initContainers": t["initContainers"]} if t.get("initContainers") else {})}, open(f"exec-{name}.yaml", "w"))
+EOF
+az containerapp job start -n superadmin-release -g "$RG" --yaml exec-dry.yaml     # 1. dry run, writes nothing
+az containerapp job start -n superadmin-release -g "$RG" --yaml exec-apply.yaml   # 2. import and publish
+rm -f job.json exec-dry.yaml exec-apply.yaml
 az containerapp job execution list -n superadmin-release -g "$RG" -o table
 ```
 

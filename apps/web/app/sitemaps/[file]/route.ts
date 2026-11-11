@@ -12,6 +12,9 @@ import {
  * existing, canonical URLs only, with `lastmod` from content dates, never the build time.
  */
 export const dynamic = "force-static";
+// Also regenerate every 10 minutes: a build-time admin read that fails (a cold admin) is caught and
+// leaves no content tags on this entry, so publish events alone would never refresh it.
+export const revalidate = 600;
 export const dynamicParams = false;
 
 export function generateStaticParams(): { file: string }[] {
