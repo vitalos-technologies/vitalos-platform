@@ -14,23 +14,19 @@ updated_by: session_01Cr6fhcy2Ch1rivzTMCj8ek (engineering); seeded from the Puls
 # Vitalos Platform: status
 
 ## Summary
-Monorepo behind the live vitalos.co.uk website (Next.js on Vercel), the internal Django Super Admin and the client portal. The AI & Data launch milestone (VAD-001 to VAD-010), the AI-assisted admin workspace and the client portal are built and live; the Relay assistant is built but switched off in production, with the site assistant moved to Askbridge (ADR-045). Remaining work is mostly owner switches and customer-dependent tasks.
+Monorepo behind the live vitalos.co.uk website (Next.js on Vercel), the internal Django Super Admin and the client portal. The AI & Data launch milestone (VAD-001 to VAD-010), the AI-assisted admin workspace and the client portal are built and live; the site assistant moved to Askbridge (ADR-045).
 
 ## Now
 
 ## Next
-- Merge open Dependabot PRs once CI is green
 - WS-006 remainder: per-milestone tasks and test cases, AI-drafted progress summaries with human approval
-- Triage stale PRs #87, #82, #70, #69 with the owner
 - PORTAL-14 later phases: email OTP, contractual e-signature, live monitoring, retention jobs
-- Customer discovery (VAD-011) toward the first paid engagement
+- Other follow-ups: tracked privately on Pulse.
 
 ## Needs Temitope
 - Tracked privately on Pulse (this repository is public).
 
 ## Blockers
-- VAD-011 to VAD-019 need customer conversations and a real customer
-- Live AI features stay off until the owner switches them on
 - Tracked privately on Pulse (this repository is public).
 
 ## Links
