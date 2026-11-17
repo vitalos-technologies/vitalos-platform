@@ -19,3 +19,6 @@ docs/content/imports/
 # Generated email renders (docs/email/README.md): byte-for-byte what was sent.
 docs/email/baseline/
 docs/email/gallery/
+
+# Pulse session and status files (pulse/kit in vitalos-op), written by agents
+.pulse/
